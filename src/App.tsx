@@ -166,8 +166,8 @@ export default function App() {
       const cached = findCachedPlace(lat, lng, historyRef.current);
       if (cached) {
         // Reuse cached data directly — skip picker entirely
-        setViewMode("eras");
-        setCustomYear(undefined);
+        setViewMode(cached.viewMode ?? "eras");
+        setCustomYear(cached.customYear);
         setImageStyle(cached.imageStyle ?? "aerial");
         startFromCache(lat, lng, cached);
         return;
@@ -315,6 +315,7 @@ export default function App() {
             referenceImages: research.images,
             savedAt: Date.now(),
             imageStyle: style,
+            viewMode: "eras",
           };
           setHistory((prev) => upsertHistory(prev, cacheEntry));
 
@@ -364,6 +365,8 @@ export default function App() {
             referenceImages: research.images,
             savedAt: Date.now(),
             imageStyle: style,
+            viewMode: "custom-year",
+            customYear: year,
           };
           setHistory((prev) => upsertHistory(prev, cacheEntry));
 

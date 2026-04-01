@@ -49,6 +49,10 @@ export interface CachedPlace {
   savedAt: number;
   /** Image perspective style used for this place */
   imageStyle?: ImageStyle;
+  /** View mode used for this place */
+  viewMode?: ViewMode;
+  /** Custom year if in custom-year mode */
+  customYear?: number;
 }
 
 /** App-level status */
