@@ -227,9 +227,19 @@ export default function App() {
       setEras(hydratedEras);
 
       const allReady = hydratedEras.every((e) => e.imageStatus === "ready");
+      const anyReady = hydratedEras.some((e) => e.imageStatus === "ready");
+
       if (allReady) {
+        // All images present — just show them
+        setStatus("ready");
+      } else if (anyReady) {
+        // Partially completed (user cancelled mid-generation) — show what we have
+        // Jump to the last era that has an image
+        const lastReadyIdx = hydratedEras.map((e, i) => e.imageStatus === "ready" ? i : -1).filter((i) => i >= 0).pop() ?? 0;
+        setActiveEraIndex(lastReadyIdx);
         setStatus("ready");
       } else {
+        // No images at all — resume full generation
         setStatus("generating");
         const hasPending = hydratedEras.some((e) => e.imageStatus === "pending");
         if (hasPending) {
@@ -453,14 +463,36 @@ export default function App() {
     };
   }, [handleMapClick]);
 
-  // ── Close modal ───────────────────────────────────────────────────────
+  // ── Close modal (also acts as cancel) ───────────────────────────────────
   const handleCloseModal = useCallback(() => {
-    setModalOpen(false);
+    // Abort in-flight API calls
     if (abortRef.current) {
       abortRef.current.abort();
       abortRef.current = null;
     }
-  }, []);
+
+    // Persist whatever images were completed; mark loading/pending eras back to pending
+    // so they don't show as "loading" in history but also don't auto-restart
+    setEras((prev) => {
+      if (!coords) return prev;
+      const settled = prev.map((e) =>
+        e.imageStatus === "loading"
+          ? { ...e, imageStatus: "pending" as const }
+          : e
+      );
+      // Update cache with settled statuses
+      const existing = findCachedPlace(coords.lat, coords.lng, historyRef.current);
+      if (existing) {
+        const updatedEras = settled.map((e) => ({ ...e, imageBase64: null }));
+        const updated: CachedPlace = { ...existing, eras: updatedEras, savedAt: Date.now() };
+        setHistory((h) => upsertHistory(h, updated));
+      }
+      return settled;
+    });
+
+    setModalOpen(false);
+    setStatus("idle");
+  }, [coords]);
 
   // ── Search bar selection → fly + trigger research ─────────────────────
   const handleSearchSelect = useCallback(
