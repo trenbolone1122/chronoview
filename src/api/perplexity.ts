@@ -122,13 +122,16 @@ export async function researchPlace(
     })
   );
 
+  // Strip Perplexity's inline citation markers like [1], [2][3], etc.
+  const stripCitations = (s: string) => s.replace(/\[\d+\]/g, "").trim();
+
   return {
-    placeName: parsed.placeName,
-    country: parsed.country,
+    placeName: stripCitations(parsed.placeName),
+    country: stripCitations(parsed.country),
     eras: parsed.eras.map((e) => ({
-      label: e.label,
+      label: stripCitations(e.label),
       year: e.year,
-      description: e.description,
+      description: stripCitations(e.description),
       imagePrompt: e.imagePrompt,
       cameraAngle: e.cameraAngle,
     })),
