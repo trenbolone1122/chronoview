@@ -103,16 +103,16 @@ export function SearchBar({ mapboxToken, onSelect }: SearchBarProps) {
     <div ref={containerRef} className="relative w-72">
       {/* Input */}
       <div
-        className={`flex items-center gap-2 rounded-lg border bg-black/60 px-3 py-2 backdrop-blur-lg transition-colors ${
+        className={`flex items-center gap-2 rounded-lg border bg-black/80 px-3 py-2 backdrop-blur-lg transition-colors ${
           focused
-            ? "border-cyan-400/40 ring-1 ring-cyan-400/20"
-            : "border-white/10 hover:border-white/20"
+            ? "border-cyan-400/50 ring-1 ring-cyan-400/25"
+            : "border-white/25 hover:border-white/40"
         }`}
       >
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-cyan-400/60" />
         ) : (
-          <Search className="h-3.5 w-3.5 shrink-0 text-white/30" />
+          <Search className="h-3.5 w-3.5 shrink-0 text-white/50" />
         )}
         <input
           type="text"
@@ -124,7 +124,7 @@ export function SearchBar({ mapboxToken, onSelect }: SearchBarProps) {
           }}
           onBlur={() => setFocused(false)}
           placeholder="Search for a place..."
-          className="w-full bg-transparent text-xs text-white placeholder:text-white/25 focus:outline-none"
+          className="w-full bg-transparent text-xs text-white placeholder:text-white/40 focus:outline-none"
         />
         {query && (
           <button
