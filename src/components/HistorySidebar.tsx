@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { History, ChevronRight, MapPin, Trash2 } from "lucide-react";
+import { History, ChevronLeft, MapPin, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CachedPlace } from "@/types";
 
@@ -15,7 +15,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
   return (
     <div
       className={cn(
-        "absolute right-0 top-0 z-20 flex h-full transition-all duration-300 ease-out",
+        "absolute left-0 top-0 z-20 flex h-full flex-row-reverse transition-all duration-300 ease-out",
         expanded ? "w-64" : "w-10"
       )}
     >
@@ -23,11 +23,11 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-l-lg border border-r-0 border-white/10 bg-black/60 text-white/50 backdrop-blur-lg transition-colors hover:bg-black/80 hover:text-white/80"
+        className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-r-lg border border-l-0 border-white/10 bg-black/60 text-white/50 backdrop-blur-lg transition-colors hover:bg-black/80 hover:text-white/80"
         title={expanded ? "Collapse history" : "Expand history"}
       >
         {expanded ? (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
         ) : (
           <div className="relative">
             <History className="h-4 w-4" />
@@ -43,7 +43,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
       {/* Panel */}
       <div
         className={cn(
-          "flex flex-col overflow-hidden border-l border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl transition-all duration-300",
+          "flex flex-col overflow-hidden border-r border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl transition-all duration-300",
           expanded ? "w-[calc(100%-2.5rem)] opacity-100" : "w-0 opacity-0"
         )}
       >

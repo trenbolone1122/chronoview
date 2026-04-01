@@ -335,7 +335,7 @@ export default function App() {
       <div ref={mapContainerRef} className="absolute inset-0 z-0 h-full w-full" />
 
       {/* Top bar: title + search */}
-      <div className="absolute left-4 right-14 top-4 z-20 flex items-start justify-between gap-4">
+      <div className="absolute left-14 right-4 top-4 z-20 flex items-start justify-between gap-4">
         <div className="pointer-events-none">
           <div className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
             Chronoview
