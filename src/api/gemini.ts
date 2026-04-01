@@ -164,11 +164,22 @@ export async function generateEraImage(
   apiKey: string,
   signal?: AbortSignal,
   model?: string,
-  imageStyle: ImageStyle = "aerial"
+  imageStyle: ImageStyle = "aerial",
+  eraYear?: number,
+  placeName?: string
 ): Promise<string> {
   const resolvedModel = model || DEFAULT_MODEL;
   const systemPrompt = SYSTEM_PROMPTS[imageStyle];
-  const fullPrompt = PREFIXES[imageStyle] + prompt;
+  // Anchor the prompt with explicit year + place so the model can't drift temporally
+  const yearLabel = eraYear != null
+    ? (eraYear < 0 ? `${Math.abs(eraYear)} BC` : `${eraYear} AD`)
+    : null;
+  const timeAnchor = yearLabel && placeName
+    ? `[YEAR: ${yearLabel} | PLACE: ${placeName}] Depict this location EXACTLY as it appeared in ${yearLabel}. `
+    : yearLabel
+      ? `[YEAR: ${yearLabel}] Depict this location EXACTLY as it appeared in ${yearLabel}. `
+      : "";
+  const fullPrompt = PREFIXES[imageStyle] + timeAnchor + prompt;
   const refCount = referenceImageUrls.length;
 
   console.log(

@@ -75,7 +75,8 @@ export default function App() {
       eraList: Era[],
       researchData: PerplexityResponse,
       signal: AbortSignal,
-      style: ImageStyle = "aerial"
+      style: ImageStyle = "aerial",
+      resolvedPlaceName?: string
     ) => {
       for (let i = 0; i < eraList.length; i++) {
         if (signal.aborted) return;
@@ -101,7 +102,9 @@ export default function App() {
             openrouterKey,
             signal,
             imageModel,
-            style
+            style,
+            pEra.year,
+            resolvedPlaceName ?? researchData.placeName
           );
 
           if (signal.aborted) return;
@@ -380,7 +383,9 @@ export default function App() {
               openrouterKey,
               controller.signal,
               imageModel,
-              style
+              style,
+              research.era.year,
+              research.placeName
             );
 
             if (controller.signal.aborted) return;
