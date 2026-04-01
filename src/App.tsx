@@ -23,7 +23,8 @@ export default function App() {
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
   const perplexityKey = import.meta.env.VITE_PERPLEXITY_API_KEY;
-  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  const openrouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const imageModel = import.meta.env.VITE_IMAGE_MODEL;
 
   // ── Map initialization ────────────────────────────────────────────────
   useEffect(() => {
@@ -73,8 +74,9 @@ export default function App() {
           const imageBase64 = await generateEraImage(
             pEra.imagePrompt,
             pEra.referenceImageUrls ?? [],
-            geminiKey,
-            signal
+            openrouterKey,
+            signal,
+            imageModel
           );
 
           if (signal.aborted) return;
@@ -103,7 +105,7 @@ export default function App() {
 
       setStatus("ready");
     },
-    [geminiKey]
+    [openrouterKey, imageModel]
   );
 
   // ── Handle map click ──────────────────────────────────────────────────
@@ -233,7 +235,7 @@ export default function App() {
         setStatus("error");
       }
     },
-    [history, perplexityKey, geminiKey, generateAllImages]
+    [history, perplexityKey, openrouterKey, generateAllImages]
   );
 
   // ── Bind map click handler ────────────────────────────────────────────
@@ -264,7 +266,7 @@ export default function App() {
   const missingKeys: string[] = [];
   if (!mapboxToken) missingKeys.push("VITE_MAPBOX_TOKEN");
   if (!perplexityKey) missingKeys.push("VITE_PERPLEXITY_API_KEY");
-  if (!geminiKey) missingKeys.push("VITE_GEMINI_API_KEY");
+  if (!openrouterKey) missingKeys.push("VITE_OPENROUTER_API_KEY");
 
   return (
     <div className="relative h-full w-full overflow-hidden">

@@ -15,7 +15,7 @@ Click any place on the map → AI researches its history → generates images fo
 - Tailwind CSS v4 + shadcn/ui primitives
 - Mapbox GL JS (dark theme)
 - Perplexity Sonar Pro API (historical research + structured JSON + image search)
-- Gemini `gemini-2.0-flash-preview-image-generation` (image generation with search grounding)
+- OpenRouter API → Gemini Nano Banana models (image generation)
 - Geist Sans + Geist Mono fonts
 - localStorage caching (1km radius dedup)
 
@@ -42,8 +42,9 @@ npm run dev
 | Key | Where to get it |
 |-----|----------------|
 | `VITE_PERPLEXITY_API_KEY` | [perplexity.ai/settings/api](https://www.perplexity.ai/settings/api) |
-| `VITE_GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `VITE_OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | `VITE_MAPBOX_TOKEN` | [mapbox.com/account/access-tokens](https://account.mapbox.com/access-tokens/) |
+| `VITE_IMAGE_MODEL` (optional) | Override model. Default: `google/gemini-2.5-flash-image` |
 
 ## Architecture
 
@@ -61,10 +62,10 @@ User clicks map (lat, lng)
       │
       └─ For each era (sequential):
           │
-          └─ Gemini Nano Banana
+          └─ OpenRouter → Gemini Nano Banana
               ├─ Image prompt from Perplexity research
-              ├─ Reference images as inline_data (up to 3)
-              ├─ Google Search grounding enabled
+              ├─ Reference images as image_url parts (up to 3)
+              ├─ modalities: ["image", "text"]
               └─ Output: 16:9, 1K resolution, base64 PNG
 ```
 
