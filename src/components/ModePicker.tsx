@@ -11,14 +11,24 @@ interface ModePickerProps {
 
 export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
   const [yearInput, setYearInput] = useState("");
+  const [isBc, setIsBc] = useState(false);
   const [showYearInput, setShowYearInput] = useState(false);
   const [imageStyle, setImageStyle] = useState<ImageStyle>("aerial");
 
   const handleYearSubmit = () => {
-    const y = parseInt(yearInput, 10);
-    if (isNaN(y)) return;
+    const raw = parseInt(yearInput, 10);
+    if (isNaN(raw) || raw <= 0) return;
+    const y = isBc ? -raw : raw;
     onSelect("custom-year", imageStyle, y);
   };
+
+  const parsedYear = parseInt(yearInput, 10);
+  const isValidYear = !isNaN(parsedYear) && parsedYear > 0;
+  const displayYear = isValidYear
+    ? isBc
+      ? `${parsedYear} BC`
+      : `${parsedYear}`
+    : "...";
 
   return (
     <div
@@ -119,18 +129,31 @@ export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
             <div className="flex items-center gap-2">
               <input
                 type="number"
+                min="1"
                 value={yearInput}
                 onChange={(e) => setYearInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleYearSubmit()}
-                placeholder="e.g. 1850, 500 BC → -500"
+                placeholder={isBc ? "e.g. 500, 3000" : "e.g. 1850, 2020"}
                 autoFocus
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-400/20"
               />
+              <button
+                type="button"
+                onClick={() => setIsBc(!isBc)}
+                className={cn(
+                  "shrink-0 rounded-lg border px-3 py-2.5 text-xs font-semibold transition-all",
+                  isBc
+                    ? "border-cyan-400/40 bg-cyan-400/15 text-cyan-300"
+                    : "border-white/10 bg-white/5 text-white/40 hover:bg-white/10"
+                )}
+              >
+                BC
+              </button>
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowYearInput(false)}
+                onClick={() => { setShowYearInput(false); setIsBc(false); }}
                 className="flex-1 rounded-lg border border-white/10 px-3 py-2 text-xs text-white/50 transition-colors hover:bg-white/5"
               >
                 Back
@@ -138,10 +161,10 @@ export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
               <button
                 type="button"
                 onClick={handleYearSubmit}
-                disabled={!yearInput.trim() || isNaN(parseInt(yearInput, 10))}
+                disabled={!isValidYear}
                 className="flex-1 rounded-lg bg-cyan-400/20 px-3 py-2 text-xs font-medium text-cyan-300 transition-colors hover:bg-cyan-400/30 disabled:opacity-40 disabled:hover:bg-cyan-400/20"
               >
-                Explore year {yearInput || "..."}
+                Explore {displayYear}
               </button>
             </div>
           </div>
