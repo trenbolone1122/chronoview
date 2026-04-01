@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlaceModal } from "@/components/PlaceModal";
+import { SearchBar } from "@/components/SearchBar";
+import { HistorySidebar } from "@/components/HistorySidebar";
 import { researchPlace } from "@/api/perplexity";
 import { generateEraImage } from "@/api/gemini";
-import { findCachedPlace, loadHistory, upsertHistory } from "@/lib/cache";
+import { findCachedPlace, loadHistory, upsertHistory, saveHistory } from "@/lib/cache";
 import type { Era, CachedPlace, AppStatus, PerplexityResponse } from "@/types";
 
 export default function App() {
@@ -20,6 +22,13 @@ export default function App() {
   const [activeEraIndex, setActiveEraIndex] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [history, setHistory] = useState<CachedPlace[]>(() => loadHistory());
+
+  // Keep a ref to history so handleMapClick always reads the latest cache
+  // without needing history in its dependency array (avoids stale closures)
+  const historyRef = useRef(history);
+  useEffect(() => {
+    historyRef.current = history;
+  }, [history]);
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN;
   const perplexityKey = import.meta.env.VITE_PERPLEXITY_API_KEY;
@@ -132,8 +141,8 @@ export default function App() {
       setActiveEraIndex(0);
       setModalOpen(true);
 
-      // Check cache first
-      const cached = findCachedPlace(lat, lng, history);
+      // Check cache first (use ref for latest history to avoid stale closures)
+      const cached = findCachedPlace(lat, lng, historyRef.current);
       if (cached) {
         setPlaceName(cached.placeName);
         setCountry(cached.country);
@@ -234,8 +243,22 @@ export default function App() {
         setStatus("error");
       }
     },
-    [history, perplexityKey, openrouterKey, generateAllImages]
+    [perplexityKey, openrouterKey, generateAllImages]
   );
+
+  // ── Sync eras to localStorage cache whenever an image becomes ready ──
+  useEffect(() => {
+    if (!coords || eras.length === 0) return;
+    const hasAnyReady = eras.some((e) => e.imageStatus === "ready");
+    if (!hasAnyReady) return;
+
+    // Find the existing cache entry and update its eras
+    const existing = findCachedPlace(coords.lat, coords.lng, historyRef.current);
+    if (existing) {
+      const updated: CachedPlace = { ...existing, eras, savedAt: Date.now() };
+      setHistory((prev) => upsertHistory(prev, updated));
+    }
+  }, [eras, coords]);
 
   // ── Bind map click handler ────────────────────────────────────────────
   useEffect(() => {
@@ -261,6 +284,20 @@ export default function App() {
     }
   }, []);
 
+  // ── Search bar selection → fly + trigger research ─────────────────────
+  const handleSearchSelect = useCallback(
+    (lat: number, lng: number) => {
+      handleMapClick(lat, lng);
+    },
+    [handleMapClick]
+  );
+
+  // ── Clear history ─────────────────────────────────────────────────────
+  const handleClearHistory = useCallback(() => {
+    setHistory([]);
+    saveHistory([]);
+  }, []);
+
   // ── Missing keys warning ──────────────────────────────────────────────
   const missingKeys: string[] = [];
   if (!mapboxToken) missingKeys.push("VITE_MAPBOX_TOKEN");
@@ -272,24 +309,36 @@ export default function App() {
       {/* Map */}
       <div ref={mapContainerRef} className="absolute inset-0 z-0 h-full w-full" />
 
-      {/* Title overlay */}
-      <div className="pointer-events-none absolute left-4 top-4 z-20">
-        <div className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
-          Chronoview
+      {/* Top bar: title + search */}
+      <div className="absolute left-4 right-14 top-4 z-20 flex items-start justify-between gap-4">
+        <div className="pointer-events-none">
+          <div className="text-sm font-semibold uppercase tracking-[0.3em] text-white/70">
+            Chronoview
+          </div>
+          <div className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/30">
+            Click anywhere to travel through time
+          </div>
         </div>
-        <div className="mt-0.5 text-[10px] uppercase tracking-[0.2em] text-white/30">
-          Click anywhere to travel through time
-        </div>
+        {mapboxToken && (
+          <SearchBar mapboxToken={mapboxToken} onSelect={handleSearchSelect} />
+        )}
       </div>
 
       {/* Missing keys banner */}
       {missingKeys.length > 0 && (
-        <div className="absolute left-1/2 top-4 z-30 -translate-x-1/2 rounded-lg border border-red-500/30 bg-red-950/80 px-4 py-2 text-xs text-red-300 backdrop-blur">
+        <div className="absolute left-1/2 top-16 z-30 -translate-x-1/2 rounded-lg border border-red-500/30 bg-red-950/80 px-4 py-2 text-xs text-red-300 backdrop-blur">
           Missing env vars: {missingKeys.join(", ")}. Copy{" "}
           <code className="rounded bg-red-900/50 px-1">.env.example</code> to{" "}
           <code className="rounded bg-red-900/50 px-1">.env</code> and add your keys.
         </div>
       )}
+
+      {/* History sidebar (right edge) */}
+      <HistorySidebar
+        history={history}
+        onSelect={handleSearchSelect}
+        onClear={handleClearHistory}
+      />
 
       {/* Place modal */}
       <PlaceModal
