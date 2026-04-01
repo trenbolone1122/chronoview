@@ -30,6 +30,7 @@ export default function App() {
   const [showModePicker, setShowModePicker] = useState(false);
   const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [pendingCityName, setPendingCityName] = useState("");
+  const [pendingCountry, setPendingCountry] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("eras");
   const [customYear, setCustomYear] = useState<number | undefined>(undefined);
 
@@ -170,9 +171,11 @@ export default function App() {
 
       // Reverse geocode to get city name
       let cityName = "";
+      let countryName = "";
       try {
         const geo = await reverseGeocode(lat, lng, mapboxToken);
         cityName = geo.cityName;
+        countryName = geo.countryName;
       } catch {
         // If reverse geocode fails, proceed without city hint
       }
@@ -180,6 +183,7 @@ export default function App() {
       // Show mode picker
       setPendingCoords({ lat, lng });
       setPendingCityName(cityName);
+      setPendingCountry(countryName);
       setShowModePicker(true);
     },
     [mapboxToken, placeMarkerAndFly]
@@ -255,8 +259,9 @@ export default function App() {
       setCoords({ lat, lng });
       setActiveEraIndex(0);
       setModalOpen(true);
-      setPlaceName("");
-      setCountry("");
+      // Show city name from reverse geocode immediately (Sonar may refine it later)
+      setPlaceName(pendingCityName);
+      setCountry(pendingCountry);
       setEras([]);
       setError("");
       setStatus("researching");
@@ -371,6 +376,7 @@ export default function App() {
     [
       pendingCoords,
       pendingCityName,
+      pendingCountry,
       perplexityKey,
       openrouterKey,
       imageModel,
