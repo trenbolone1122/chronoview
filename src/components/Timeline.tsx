@@ -14,28 +14,38 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
   const ACTIVE_DOT_SIZE = 20;
   const MASK_PAD = 6;
 
+  const cols = eras.length;
+
   return (
     <div className="w-full px-2 py-2">
-      {/* Row with justify-between so first dot is at left edge, last at right edge */}
-      <div className="relative flex w-full items-start justify-between">
-        {/* Background line — edge to edge */}
+      {/* Grid so every column is equal-width; dots sit at exact center of each cell */}
+      <div
+        className="relative w-full"
+        style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)` }}
+      >
+        {/* Background line — center of first col to center of last col */}
         <div
-          className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
-          style={{ top: ACTIVE_DOT_SIZE / 2 }}
+          className="pointer-events-none absolute h-px bg-white/10"
+          style={{
+            top: ACTIVE_DOT_SIZE / 2,
+            left: `${(100 / cols) / 2}%`,
+            right: `${(100 / cols) / 2}%`,
+          }}
         />
 
-        {/* Progress line — 0% to activeIndex position */}
-        {eras.length > 1 && (
+        {/* Progress line — same inset on left, width spans to active dot center */}
+        {cols > 1 && (
           <div
-            className="pointer-events-none absolute left-0 h-px bg-cyan-400/60 transition-all duration-700 ease-out"
+            className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
               top: ACTIVE_DOT_SIZE / 2,
-              width: `${(activeIndex / (eras.length - 1)) * 100}%`,
+              left: `${(100 / cols) / 2}%`,
+              width: `${(activeIndex / (cols - 1)) * (100 - 100 / cols)}%`,
             }}
           />
         )}
 
-        {/* Columns — no fixed width, spread by justify-between */}
+        {/* Era columns */}
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -49,7 +59,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               key={era.id}
               type="button"
               onClick={() => onSelect(i)}
-              className="z-10 flex flex-col items-center gap-1.5"
+              className="z-10 flex flex-col items-center justify-self-center gap-1.5"
             >
               {/* Dot container */}
               <div
