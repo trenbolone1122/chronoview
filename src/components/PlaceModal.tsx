@@ -62,14 +62,11 @@ export function PlaceModal({
 
         {/* Header */}
         <div className="mb-3 shrink-0 pr-10">
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-lg font-semibold tracking-tight text-white md:text-xl">
-              {status === "researching" ? "Researching..." : placeName || "Unknown Location"}
-            </h2>
-            {country && (
-              <span className="text-sm text-white/40">{country}</span>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold tracking-tight text-white md:text-xl">
+            {status === "researching"
+              ? "Researching..."
+              : [placeName, country].filter(Boolean).join(", ") || "Unknown Location"}
+          </h2>
           <div className="mt-1 flex items-center gap-3 text-xs text-white/30">
             {coords && (
               <span className="font-mono tabular-nums">
