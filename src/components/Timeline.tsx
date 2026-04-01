@@ -23,24 +23,19 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
         className="relative w-full"
         style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)` }}
       >
-        {/* Background line — center of first col to center of last col */}
+        {/* Background line — full edge-to-edge */}
         <div
-          className="pointer-events-none absolute h-px bg-white/10"
-          style={{
-            top: ACTIVE_DOT_SIZE / 2,
-            left: `${(100 / cols) / 2}%`,
-            right: `${(100 / cols) / 2}%`,
-          }}
+          className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
+          style={{ top: ACTIVE_DOT_SIZE / 2 }}
         />
 
-        {/* Progress line — same inset on left, width spans to active dot center */}
+        {/* Progress line — 0 to active dot center */}
         {cols > 1 && (
           <div
-            className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
+            className="pointer-events-none absolute left-0 h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
               top: ACTIVE_DOT_SIZE / 2,
-              left: `${(100 / cols) / 2}%`,
-              width: `${(activeIndex / (cols - 1)) * (100 - 100 / cols)}%`,
+              width: `${(activeIndex / (cols - 1)) * 100}%`,
             }}
           />
         )}
