@@ -166,8 +166,10 @@ export default function App() {
       const cached = findCachedPlace(lat, lng, historyRef.current);
       if (cached) {
         // Reuse cached data directly — skip picker entirely
-        setViewMode(cached.viewMode ?? "eras");
-        setCustomYear(cached.customYear);
+        // Determine view mode: explicit from cache, or infer from era count
+        const restoredMode = cached.viewMode ?? (cached.eras.length === 1 ? "custom-year" : "eras");
+        setViewMode(restoredMode);
+        setCustomYear(cached.customYear ?? (restoredMode === "custom-year" ? cached.eras[0]?.year : undefined));
         setImageStyle(cached.imageStyle ?? "aerial");
         startFromCache(lat, lng, cached);
         return;
