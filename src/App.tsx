@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PlaceModal } from "@/components/PlaceModal";
+import { ModePicker } from "@/components/ModePicker";
 import { SearchBar } from "@/components/SearchBar";
 import { HistorySidebar } from "@/components/HistorySidebar";
-import { researchPlace } from "@/api/perplexity";
+import { reverseGeocode } from "@/api/geocode";
+import { researchPlace, researchCustomYear } from "@/api/perplexity";
 import { generateEraImage } from "@/api/gemini";
 import { findCachedPlace, loadHistory, upsertHistory, saveHistory } from "@/lib/cache";
 import { saveImage, getImages, clearImages } from "@/lib/imageStore";
-import type { Era, CachedPlace, AppStatus, PerplexityResponse } from "@/types";
+import type { Era, CachedPlace, AppStatus, PerplexityResponse, ViewMode } from "@/types";
 
 export default function App() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -24,8 +26,14 @@ export default function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [history, setHistory] = useState<CachedPlace[]>(() => loadHistory());
 
+  // Mode picker state
+  const [showModePicker, setShowModePicker] = useState(false);
+  const [pendingCoords, setPendingCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [pendingCityName, setPendingCityName] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("eras");
+  const [customYear, setCustomYear] = useState<number | undefined>(undefined);
+
   // Keep a ref to history so handleMapClick always reads the latest cache
-  // without needing history in its dependency array (avoids stale closures)
   const historyRef = useRef(history);
   useEffect(() => {
     historyRef.current = history;
@@ -83,8 +91,6 @@ export default function App() {
 
         try {
           const pEra = researchData.eras[i];
-          // Feed real image URLs from Sonar's return_images (top-level images[])
-          // NOT per-era hallucinated URLs — Sonar provides a shared pool of reference images
           const refUrls = (researchData.images ?? []).map((img) => img.image_url).filter(Boolean);
           const imageBase64 = await generateEraImage(
             pEra.imagePrompt,
@@ -96,7 +102,7 @@ export default function App() {
 
           if (signal.aborted) return;
 
-          // Persist to IndexedDB so cache hits don't need re-generation
+          // Persist to IndexedDB
           const eraId = eraList[i].id;
           saveImage(eraId, imageBase64).catch(() => {});
 
@@ -106,6 +112,9 @@ export default function App() {
               next[i] = { ...next[i], imageBase64, imageStatus: "ready" };
             return next;
           });
+
+          // Auto-advance to this era once its image is ready
+          setActiveEraIndex(i);
         } catch (err: unknown) {
           if (signal.aborted) return;
           const msg = err instanceof Error ? err.message : "Unknown error";
@@ -127,81 +136,125 @@ export default function App() {
     [openrouterKey, imageModel]
   );
 
-  // ── Handle map click ──────────────────────────────────────────────────
+  // ── Place marker + fly ────────────────────────────────────────────────
+  const placeMarkerAndFly = useCallback((lat: number, lng: number) => {
+    const marker = markerRef.current;
+    const map = mapRef.current;
+    if (marker && map) {
+      marker.setLngLat([lng, lat]).addTo(map);
+      map.flyTo({
+        center: [lng, lat],
+        zoom: Math.max(map.getZoom(), 8),
+        duration: 900,
+      });
+    }
+  }, []);
+
+  // ── Handle map click — reverse geocode first, then show mode picker ───
   const handleMapClick = useCallback(
     async (lat: number, lng: number) => {
       // Abort any in-flight requests
       if (abortRef.current) abortRef.current.abort();
+
+      placeMarkerAndFly(lat, lng);
+
+      // Check cache first — if cached, skip mode picker and go straight to eras
+      const cached = findCachedPlace(lat, lng, historyRef.current);
+      if (cached) {
+        // Reuse cached data directly (eras mode, skip picker)
+        setViewMode("eras");
+        setCustomYear(undefined);
+        startFromCache(lat, lng, cached);
+        return;
+      }
+
+      // Reverse geocode to get city name
+      let cityName = "";
+      try {
+        const geo = await reverseGeocode(lat, lng, mapboxToken);
+        cityName = geo.cityName;
+      } catch {
+        // If reverse geocode fails, proceed without city hint
+      }
+
+      // Show mode picker
+      setPendingCoords({ lat, lng });
+      setPendingCityName(cityName);
+      setShowModePicker(true);
+    },
+    [mapboxToken, placeMarkerAndFly]
+  );
+
+  // ── Start from cache (eras mode) ─────────────────────────────────────
+  const startFromCache = useCallback(
+    async (lat: number, lng: number, cached: CachedPlace) => {
       const controller = new AbortController();
       abortRef.current = controller;
-
-      // Place marker
-      const marker = markerRef.current;
-      const map = mapRef.current;
-      if (marker && map) {
-        marker.setLngLat([lng, lat]).addTo(map);
-        map.flyTo({
-          center: [lng, lat],
-          zoom: Math.max(map.getZoom(), 8),
-          duration: 900,
-        });
-      }
 
       setCoords({ lat, lng });
       setActiveEraIndex(0);
       setModalOpen(true);
+      setPlaceName(cached.placeName);
+      setCountry(cached.country);
+      setError("");
 
-      // Check cache first (use ref for latest history to avoid stale closures)
-      const cached = findCachedPlace(lat, lng, historyRef.current);
-      if (cached) {
-        setPlaceName(cached.placeName);
-        setCountry(cached.country);
-        setError("");
+      // Hydrate images from IndexedDB
+      const eraIds = cached.eras.map((e) => e.id);
+      const imageMap = await getImages(eraIds);
 
-        // Hydrate images from IndexedDB
-        const eraIds = cached.eras.map((e) => e.id);
-        const imageMap = await getImages(eraIds);
-
-        // Rebuild eras with images from IndexedDB + mark status correctly
-        const hydratedEras = cached.eras.map((e) => {
-          const img = imageMap.get(e.id) ?? null;
-          if (img) {
-            return { ...e, imageBase64: img, imageStatus: "ready" as const };
-          }
-          // Keep existing status (error stays error, pending stays pending)
-          return e;
-        });
-
-        setEras(hydratedEras);
-
-        const allReady = hydratedEras.every((e) => e.imageStatus === "ready");
-        if (allReady) {
-          setStatus("ready");
-        } else {
-          setStatus("generating");
-          // Only regenerate truly pending eras (not errored ones — those cost credits)
-          const hasPending = hydratedEras.some((e) => e.imageStatus === "pending");
-          if (hasPending) {
-            const researchData: PerplexityResponse = {
-              placeName: cached.placeName,
-              country: cached.country,
-              eras: cached.eras.map((e) => ({
-                label: e.label,
-                year: e.year,
-                description: e.description,
-                imagePrompt: e.prompt,
-                cameraAngle: e.cameraAngle,
-              })),
-              citations: cached.citations,
-              images: cached.referenceImages,
-            };
-            generateAllImages(hydratedEras, researchData, controller.signal);
-          }
+      const hydratedEras = cached.eras.map((e) => {
+        const img = imageMap.get(e.id) ?? null;
+        if (img) {
+          return { ...e, imageBase64: img, imageStatus: "ready" as const };
         }
-        return;
-      }
+        return e;
+      });
 
-      // Fresh research
+      setEras(hydratedEras);
+
+      const allReady = hydratedEras.every((e) => e.imageStatus === "ready");
+      if (allReady) {
+        setStatus("ready");
+      } else {
+        setStatus("generating");
+        const hasPending = hydratedEras.some((e) => e.imageStatus === "pending");
+        if (hasPending) {
+          const researchData: PerplexityResponse = {
+            placeName: cached.placeName,
+            country: cached.country,
+            eras: cached.eras.map((e) => ({
+              label: e.label,
+              year: e.year,
+              description: e.description,
+              imagePrompt: e.prompt,
+              cameraAngle: e.cameraAngle,
+            })),
+            citations: cached.citations,
+            images: cached.referenceImages,
+          };
+          generateAllImages(hydratedEras, researchData, controller.signal);
+        }
+      }
+    },
+    [generateAllImages]
+  );
+
+  // ── Mode picker selection → start appropriate flow ────────────────────
+  const handleModeSelect = useCallback(
+    async (mode: ViewMode, yearInput?: number) => {
+      if (!pendingCoords) return;
+
+      setShowModePicker(false);
+      setViewMode(mode);
+      setCustomYear(yearInput);
+
+      const { lat, lng } = pendingCoords;
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setCoords({ lat, lng });
+      setActiveEraIndex(0);
+      setModalOpen(true);
       setPlaceName("");
       setCountry("");
       setEras([]);
@@ -209,50 +262,105 @@ export default function App() {
       setStatus("researching");
 
       try {
-        const research = await researchPlace(
-          lat,
-          lng,
-          perplexityKey,
-          controller.signal
-        );
+        if (mode === "eras") {
+          // ── Standard multi-era flow ──────────────────────────────
+          const research = await researchPlace(
+            lat,
+            lng,
+            perplexityKey,
+            controller.signal,
+            pendingCityName || undefined
+          );
 
-        if (controller.signal.aborted) return;
+          if (controller.signal.aborted) return;
 
-        setPlaceName(research.placeName);
-        setCountry(research.country);
+          setPlaceName(research.placeName);
+          setCountry(research.country);
 
-        // Build era objects
-        const eraList: Era[] = research.eras.map((e, i) => ({
-          id: `${lat}-${lng}-${i}`,
-          label: e.label,
-          year: e.year,
-          description: e.description,
-          prompt: e.imagePrompt,
-          cameraAngle: e.cameraAngle,
-          imageBase64: null,
-          imageStatus: "pending",
-          imageError: null,
-        }));
+          const eraList: Era[] = research.eras.map((e, i) => ({
+            id: `${lat}-${lng}-${i}`,
+            label: e.label,
+            year: e.year,
+            description: e.description,
+            prompt: e.imagePrompt,
+            cameraAngle: e.cameraAngle,
+            imageBase64: null,
+            imageStatus: "pending",
+            imageError: null,
+          }));
 
-        setEras(eraList);
-        setStatus("generating");
+          setEras(eraList);
+          setStatus("generating");
 
-        // Save to cache immediately (images will be updated as they generate)
-        const cacheEntry: CachedPlace = {
-          id: `${lat.toFixed(4)}-${lng.toFixed(4)}`,
-          lat,
-          lng,
-          placeName: research.placeName,
-          country: research.country,
-          eras: eraList,
-          citations: research.citations,
-          referenceImages: research.images,
-          savedAt: Date.now(),
-        };
-        setHistory((prev) => upsertHistory(prev, cacheEntry));
+          const cacheEntry: CachedPlace = {
+            id: `${lat.toFixed(4)}-${lng.toFixed(4)}`,
+            lat,
+            lng,
+            placeName: research.placeName,
+            country: research.country,
+            eras: eraList,
+            citations: research.citations,
+            referenceImages: research.images,
+            savedAt: Date.now(),
+          };
+          setHistory((prev) => upsertHistory(prev, cacheEntry));
 
-        // Start generating images (each one saves to IndexedDB on success)
-        await generateAllImages(eraList, research, controller.signal);
+          await generateAllImages(eraList, research, controller.signal);
+        } else {
+          // ── Custom year flow ─────────────────────────────────────
+          const year = yearInput!;
+          const research = await researchCustomYear(
+            lat,
+            lng,
+            year,
+            perplexityKey,
+            controller.signal,
+            pendingCityName || undefined
+          );
+
+          if (controller.signal.aborted) return;
+
+          setPlaceName(research.placeName);
+          setCountry(research.country);
+
+          const singleEra: Era = {
+            id: `${lat}-${lng}-custom-${year}`,
+            label: research.era.label,
+            year: research.era.year,
+            description: research.era.description,
+            prompt: research.era.imagePrompt,
+            cameraAngle: research.era.cameraAngle,
+            imageBase64: null,
+            imageStatus: "loading",
+            imageError: null,
+          };
+
+          setEras([singleEra]);
+          setStatus("generating");
+
+          try {
+            const refUrls = (research.images ?? []).map((img) => img.image_url).filter(Boolean);
+            const imageBase64 = await generateEraImage(
+              research.era.imagePrompt,
+              refUrls,
+              openrouterKey,
+              controller.signal,
+              imageModel
+            );
+
+            if (controller.signal.aborted) return;
+
+            saveImage(singleEra.id, imageBase64).catch(() => {});
+
+            setEras([{ ...singleEra, imageBase64, imageStatus: "ready" }]);
+            setStatus("ready");
+          } catch (err: unknown) {
+            if (controller.signal.aborted) return;
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            setEras([{ ...singleEra, imageStatus: "error", imageError: msg }]);
+            setStatus("ready");
+          }
+        }
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -260,13 +368,19 @@ export default function App() {
         setStatus("error");
       }
     },
-    [perplexityKey, openrouterKey, generateAllImages]
+    [
+      pendingCoords,
+      pendingCityName,
+      perplexityKey,
+      openrouterKey,
+      imageModel,
+      generateAllImages,
+    ]
   );
 
-  // ── Sync era statuses to localStorage (not images — those are in IndexedDB)
-  // This ensures cache entries know which eras succeeded/errored.
+  // ── Sync era statuses to localStorage ────────────────────────────────
   useEffect(() => {
-    if (!coords || eras.length === 0) return;
+    if (!coords || eras.length === 0 || viewMode !== "eras") return;
     const hasAnyDone = eras.some(
       (e) => e.imageStatus === "ready" || e.imageStatus === "error"
     );
@@ -274,15 +388,14 @@ export default function App() {
 
     const existing = findCachedPlace(coords.lat, coords.lng, historyRef.current);
     if (existing) {
-      // Update statuses only (imageBase64 is stripped by saveHistory anyway)
       const updatedEras = eras.map((e) => ({
         ...e,
-        imageBase64: null, // always null in localStorage
+        imageBase64: null,
       }));
       const updated: CachedPlace = { ...existing, eras: updatedEras, savedAt: Date.now() };
       setHistory((prev) => upsertHistory(prev, updated));
     }
-  }, [eras, coords]);
+  }, [eras, coords, viewMode]);
 
   // ── Bind map click handler ────────────────────────────────────────────
   useEffect(() => {
@@ -358,12 +471,21 @@ export default function App() {
         </div>
       )}
 
-      {/* History sidebar (right edge) */}
+      {/* History sidebar */}
       <HistorySidebar
         history={history}
         onSelect={handleSearchSelect}
         onClear={handleClearHistory}
       />
+
+      {/* Mode picker */}
+      {showModePicker && (
+        <ModePicker
+          cityName={pendingCityName}
+          onSelect={handleModeSelect}
+          onClose={() => setShowModePicker(false)}
+        />
+      )}
 
       {/* Place modal */}
       <PlaceModal
@@ -377,6 +499,8 @@ export default function App() {
         onSelectEra={setActiveEraIndex}
         status={status}
         error={error}
+        viewMode={viewMode}
+        customYear={customYear}
       />
     </div>
   );

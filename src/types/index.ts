@@ -51,3 +51,6 @@ export interface CachedPlace {
 
 /** App-level status */
 export type AppStatus = "idle" | "researching" | "generating" | "ready" | "error";
+
+/** Which view mode the user chose after clicking a place */
+export type ViewMode = "eras" | "custom-year";

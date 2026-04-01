@@ -34,7 +34,7 @@ export function SearchBar({ mapboxToken, onSelect }: SearchBarProps) {
       try {
         const url = `https://api.mapbox.com/search/geocode/v6/forward?q=${encodeURIComponent(
           q
-        )}&access_token=${mapboxToken}&limit=5&language=en`;
+        )}&access_token=${mapboxToken}&limit=5&language=en&types=place,locality,region`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Geocoding failed");
         const data = await res.json();
