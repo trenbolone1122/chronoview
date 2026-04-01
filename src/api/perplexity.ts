@@ -21,17 +21,17 @@ const CAMERA_ANGLE_DESC: Record<ImageStyle, string> = {
 function buildSystemPrompt(imageStyle: ImageStyle): string {
   const currentYear = new Date().getFullYear();
   if (imageStyle === "aerial") {
-    return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${currentYear}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${currentYear}. For each era, write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, river/coast/mountain features, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`;
+    return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${currentYear}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${currentYear}. IMPORTANT: For BC/BCE years, use NEGATIVE integers (e.g. -3000 for 3000 BC, -500 for 500 BC, -44 for 44 BC). For AD/CE years, use positive integers. For each era, write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, river/coast/mountain features, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`;
   }
-  return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${currentYear}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${currentYear}. For each era, write a vivid image generation prompt describing a STREET-LEVEL PHOTOGRAPH taken at eye-level showing daily life in that era. Include people in period-accurate clothing, market activity, vehicles or carts, architectural facades, shop fronts, street textures, and atmospheric details. Use shallow depth of field (f/1.4-f/2.8) for cinematic bokeh. NEVER describe aerial or bird's-eye views. Every image must look like a real photograph.`;
+  return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${currentYear}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${currentYear}. IMPORTANT: For BC/BCE years, use NEGATIVE integers (e.g. -3000 for 3000 BC, -500 for 500 BC, -44 for 44 BC). For AD/CE years, use positive integers. For each era, write a vivid image generation prompt describing a STREET-LEVEL PHOTOGRAPH taken at eye-level showing daily life in that era. Include people in period-accurate clothing, market activity, vehicles or carts, architectural facades, shop fronts, street textures, and atmospheric details. Use shallow depth of field (f/1.4-f/2.8) for cinematic bokeh. NEVER describe aerial or bird's-eye views. Every image must look like a real photograph.`;
 }
 
 function buildCustomYearSystemPrompt(imageStyle: ImageStyle): string {
   const currentYear = new Date().getFullYear();
   if (imageStyle === "aerial") {
-    return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. Write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`;
+    return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. IMPORTANT: For BC/BCE years, return the year as a NEGATIVE integer (e.g. -300 for 300 BC). For AD/CE years, use positive integers. Write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`;
   }
-  return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. Write a vivid image generation prompt describing a STREET-LEVEL PHOTOGRAPH taken at eye-level showing daily life in that year. Include people in period-accurate clothing, market activity, vehicles or carts, architectural facades, shop fronts, street textures, and atmospheric details. Use shallow depth of field (f/1.4-f/2.8) for cinematic bokeh. NEVER describe aerial or bird's-eye views. Every image must look like a real photograph.`;
+  return `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. IMPORTANT: For BC/BCE years, return the year as a NEGATIVE integer (e.g. -300 for 300 BC). For AD/CE years, use positive integers. Write a vivid image generation prompt describing a STREET-LEVEL PHOTOGRAPH taken at eye-level showing daily life in that year. Include people in period-accurate clothing, market activity, vehicles or carts, architectural facades, shop fronts, street textures, and atmospheric details. Use shallow depth of field (f/1.4-f/2.8) for cinematic bokeh. NEVER describe aerial or bird's-eye views. Every image must look like a real photograph.`;
 }
 
 /* ── Schemas (built dynamically per image style) ────────────────────── */
@@ -56,7 +56,7 @@ function buildSchema(imageStyle: ImageStyle) {
             },
             year: {
               type: "integer" as const,
-              description: `Representative year for this era (e.g. 100, 1200, 1700, 1900, ${new Date().getFullYear()})`,
+              description: `Representative year for this era. Use NEGATIVE numbers for BC/BCE years (e.g. -3000 for 3000 BC, -500 for 500 BC, -44 for 44 BC). Use positive numbers for AD/CE years (e.g. 100, 1200, 1700, ${new Date().getFullYear()}).`,
             },
             description: {
               type: "string" as const,
@@ -99,7 +99,7 @@ function buildCustomYearSchema(imageStyle: ImageStyle) {
             type: "string" as const,
             description: "Short era name describing this period for this place",
           },
-          year: { type: "integer" as const, description: "The requested year" },
+          year: { type: "integer" as const, description: "The requested year. Use NEGATIVE numbers for BC/BCE years (e.g. -300 for 300 BC). Use positive for AD/CE." },
           description: {
             type: "string" as const,
             description:
@@ -238,6 +238,7 @@ export async function researchCustomYear(
 ): Promise<CustomYearResponse> {
   const currentYear = new Date().getFullYear();
   const isFuture = year > currentYear;
+  const yearLabel = year < 0 ? `${Math.abs(year)} BC` : `${year}`;
 
   const response = await fetch(PERPLEXITY_URL, {
     method: "POST",
@@ -256,8 +257,8 @@ export async function researchCustomYear(
         {
           role: "user",
           content: placeHint
-            ? `Research the city of ${placeHint} (coordinates ${lat.toFixed(6)}, ${lng.toFixed(6)}) in the year ${year}. Describe what this place looked like${isFuture ? " or would plausibly look like" : ""} and provide a detailed image generation prompt.`
-            : `Research the location at coordinates ${lat.toFixed(6)}, ${lng.toFixed(6)} in the year ${year}. Describe what this place looked like${isFuture ? " or would plausibly look like" : ""} and provide a detailed image generation prompt.`,
+            ? `Research the city of ${placeHint} (coordinates ${lat.toFixed(6)}, ${lng.toFixed(6)}) in the year ${yearLabel}. Describe what this place looked like${isFuture ? " or would plausibly look like" : ""} and provide a detailed image generation prompt.${year < 0 ? ` Return the year field as ${year} (negative integer for BC).` : ""}`
+            : `Research the location at coordinates ${lat.toFixed(6)}, ${lng.toFixed(6)} in the year ${yearLabel}. Describe what this place looked like${isFuture ? " or would plausibly look like" : ""} and provide a detailed image generation prompt.${year < 0 ? ` Return the year field as ${year} (negative integer for BC).` : ""}`,
         },
       ],
       response_format: {
