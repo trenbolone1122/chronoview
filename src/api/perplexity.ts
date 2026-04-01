@@ -38,12 +38,6 @@ const SCHEMA = {
             description:
               "Camera angle for the image: one of 'eye-level', 'low-angle', 'high-angle', 'bird-eye', 'street-level', '3/4-angle'",
           },
-          referenceImageUrls: {
-            type: "array" as const,
-            items: { type: "string" as const },
-            description:
-              "1-3 URLs of reference images showing this place or similar architecture from this era. Use Wikipedia, Wikimedia Commons, or reputable historical image sources.",
-          },
         },
         required: [
           "label",
@@ -51,7 +45,6 @@ const SCHEMA = {
           "description",
           "imagePrompt",
           "cameraAngle",
-          "referenceImageUrls",
         ],
       },
     },
@@ -85,7 +78,7 @@ export async function researchPlace(
             6
           )}, ${lng.toFixed(
             6
-          )}. Identify what place this is, and provide 5-6 historically significant time periods for this exact location, from the earliest known era to present day (no future). For each era, include a detailed image generation prompt and suggest reference images.`,
+          )}. Identify what place this is, and provide 5-6 historically significant time periods for this exact location, from the earliest known era to present day (no future). For each era, include a detailed image generation prompt.`,
         },
       ],
       response_format: {
@@ -93,7 +86,6 @@ export async function researchPlace(
         json_schema: { schema: SCHEMA },
       },
       return_images: true,
-      image_domain_filter: ["wikimedia.org", "wikipedia.org", "-shutterstock.com", "-gettyimages.com"],
       image_format_filter: ["jpeg", "png", "webp"],
       temperature: 0.3,
     }),
@@ -108,18 +100,39 @@ export async function researchPlace(
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error("No content in Perplexity response");
 
-  let parsed: { placeName: string; country: string; eras: PerplexityResponse["eras"] };
+  let parsed: { placeName: string; country: string; eras: Array<{
+    label: string; year: number; description: string; imagePrompt: string; cameraAngle: string;
+  }> };
   try {
     parsed = JSON.parse(content);
   } catch {
     throw new Error("Failed to parse Perplexity JSON response");
   }
 
+  // Perplexity's return_images gives us real, fetchable image URLs in the
+  // top-level `images` array. These are the reference images we'll feed to
+  // Gemini — NOT the hallucinated wiki-page URLs the model might produce.
+  const sonarImages: PerplexityImage[] = (data.images ?? []).map(
+    (img: Record<string, unknown>) => ({
+      image_url: img.image_url ?? "",
+      origin_url: img.origin_url ?? "",
+      title: img.title ?? "",
+      width: img.width ?? 0,
+      height: img.height ?? 0,
+    })
+  );
+
   return {
     placeName: parsed.placeName,
     country: parsed.country,
-    eras: parsed.eras,
+    eras: parsed.eras.map((e) => ({
+      label: e.label,
+      year: e.year,
+      description: e.description,
+      imagePrompt: e.imagePrompt,
+      cameraAngle: e.cameraAngle,
+    })),
     citations: data.citations ?? [],
-    images: (data.images ?? []) as PerplexityImage[],
+    images: sonarImages,
   };
 }

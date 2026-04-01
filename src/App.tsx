@@ -71,9 +71,12 @@ export default function App() {
 
         try {
           const pEra = researchData.eras[i];
+          // Feed real image URLs from Sonar's return_images (top-level images[])
+          // NOT per-era hallucinated URLs — Sonar provides a shared pool of reference images
+          const refUrls = (researchData.images ?? []).map((img) => img.image_url).filter(Boolean);
           const imageBase64 = await generateEraImage(
             pEra.imagePrompt,
-            pEra.referenceImageUrls ?? [],
+            refUrls,
             openrouterKey,
             signal,
             imageModel
@@ -155,7 +158,6 @@ export default function App() {
               description: e.description,
               imagePrompt: e.prompt,
               cameraAngle: e.cameraAngle,
-              referenceImageUrls: [],
             })),
             citations: cached.citations,
             images: cached.referenceImages,

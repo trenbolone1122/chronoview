@@ -18,7 +18,6 @@ export interface PerplexityEra {
   description: string;
   imagePrompt: string;
   cameraAngle: string;
-  referenceImageUrls: string[];
 }
 
 export interface PerplexityResponse {
