@@ -15,38 +15,42 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
   const MASK_PAD = 6;
 
   const cols = eras.length;
+  const last = cols - 1;
+
+  /* Each dot is positioned at i/(cols-1)*100% so the first dot is flush-left
+     and the last dot is flush-right. Lines only exist BETWEEN dots. */
+  const dotPct = (i: number) => (last === 0 ? 50 : (i / last) * 100);
 
   return (
     <div className="w-full px-2 py-2">
-      {/* Grid so every column is equal-width; dots sit at exact center of each cell */}
-      <div
-        className="relative w-full"
-        style={{ display: "grid", gridTemplateColumns: `repeat(${cols}, 1fr)` }}
-      >
-        {/* Background line — full edge-to-edge */}
-        <div
-          className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
-          style={{ top: ACTIVE_DOT_SIZE / 2 }}
-        />
+      {/* Container — labels are placed below via flex; the dot+line layer is
+          positioned absolutely so dots can be placed at exact percentages. */}
+      <div className="relative w-full" style={{ minHeight: ACTIVE_DOT_SIZE }}>
+        {/* Background line — from first dot center to last dot center */}
+        {cols > 1 && (
+          <div
+            className="pointer-events-none absolute h-px bg-white/10"
+            style={{
+              top: ACTIVE_DOT_SIZE / 2,
+              left: "0%",
+              right: "0%",
+            }}
+          />
+        )}
 
-        {/*
-          Progress line — from first dot center to active dot center.
-          Each dot center sits at (i + 0.5) / cols * 100%.
-          So first dot center = halfCol, active dot center = (activeIndex + 0.5) / cols * 100%.
-          Line starts at halfCol, width = distance between first and active dot centers.
-        */}
+        {/* Progress (lit) line — from first dot center to active dot center */}
         {cols > 1 && activeIndex > 0 && (
           <div
             className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
               top: ACTIVE_DOT_SIZE / 2,
-              left: `${(0.5 / cols) * 100}%`,
-              width: `${(activeIndex / cols) * 100}%`,
+              left: "0%",
+              width: `${dotPct(activeIndex)}%`,
             }}
           />
         )}
 
-        {/* Era columns */}
+        {/* Dots — absolutely positioned at their percentage */}
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -60,7 +64,12 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               key={era.id}
               type="button"
               onClick={() => onSelect(i)}
-              className="z-10 flex flex-col items-center justify-self-center gap-1.5"
+              className="absolute z-10 flex flex-col items-center"
+              style={{
+                left: `${dotPct(i)}%`,
+                top: 0,
+                transform: "translateX(-50%)",
+              }}
             >
               {/* Dot container */}
               <div
@@ -102,7 +111,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               </div>
 
               {/* Label + year */}
-              <div className="flex flex-col items-center gap-0.5">
+              <div className="mt-1.5 flex flex-col items-center gap-0.5">
                 <span
                   className={cn(
                     "max-w-[140px] truncate text-center text-[11px] font-semibold uppercase leading-tight tracking-[0.04em] transition-colors",
@@ -128,6 +137,9 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           );
         })}
       </div>
+
+      {/* Spacer to account for the labels below the absolutely positioned dots */}
+      <div style={{ height: 36 }} />
     </div>
   );
 }
