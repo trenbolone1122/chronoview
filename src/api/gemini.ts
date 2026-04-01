@@ -5,6 +5,8 @@
  * Images are returned in `choices[0].message.images[]` as base64 data URLs.
  */
 
+import type { ImageStyle } from "@/types";
+
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 // Available Nano Banana models on OpenRouter (best → fastest):
@@ -43,10 +45,19 @@ function buildUserContent(
   return parts;
 }
 
-/** Enforce photorealism + aerial/establishing perspective */
-const PHOTOREALISM_SYSTEM = `You are a photorealistic image generator specializing in WIDE AERIAL/ESTABLISHING SHOTS of cities. EVERY image you produce MUST look like a real photograph taken from an elevated vantage point — a drone, hilltop, rooftop, or aircraft. Show the full cityscape, skyline, landmark buildings, and surrounding geography (rivers, mountains, coastline). Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce street-level, eye-level, or close-up shots. The output must be indistinguishable from a real aerial photograph — proper lighting, atmospheric haze, natural textures, wide depth of field. If the scene is historical, imagine a time traveler flew a drone over the city and photographed it from above.`;
+/* ── Per-style system prompts and prefixes ──────────────────────────── */
 
-const PHOTOREALISM_PREFIX = "Ultra-realistic aerial photograph, wide establishing shot, shot from elevated vantage point with DJI Mavic 3 drone, 24mm wide-angle lens, wide depth of field f/8, showing full cityscape and skyline, natural lighting, atmospheric perspective, photorealistic, NOT an illustration, NOT a painting, NOT a drawing, NOT street-level: ";
+const SYSTEM_PROMPTS: Record<ImageStyle, string> = {
+  aerial: `You are a photorealistic image generator specializing in WIDE AERIAL/ESTABLISHING SHOTS of cities. EVERY image you produce MUST look like a real photograph taken from an elevated vantage point — a drone, hilltop, rooftop, or aircraft. Show the full cityscape, skyline, landmark buildings, and surrounding geography (rivers, mountains, coastline). Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce street-level, eye-level, or close-up shots. The output must be indistinguishable from a real aerial photograph — proper lighting, atmospheric haze, natural textures, wide depth of field. If the scene is historical, imagine a time traveler flew a drone over the city and photographed it from above.`,
+  street: `You are a photorealistic image generator specializing in STREET-LEVEL photographs of cities showing daily life. EVERY image you produce MUST look like a real photograph taken at eye-level by a person standing in the street. Show people in period-accurate clothing, market activity, vehicles or carts, architectural facades, shop fronts, and street textures. Use shallow depth of field for cinematic bokeh — sharp foreground subjects, dreamy background blur. Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce aerial or bird's-eye shots. The output must be indistinguishable from a real street photograph — proper lighting, film grain, natural textures, bokeh. If the scene is historical, imagine a time traveler took a DSLR camera back in time and photographed the street.`,
+};
+
+const PREFIXES: Record<ImageStyle, string> = {
+  aerial:
+    "Ultra-realistic aerial photograph, wide establishing shot, shot from elevated vantage point with DJI Mavic 3 drone, 24mm wide-angle lens, wide depth of field f/8, showing full cityscape and skyline, natural lighting, atmospheric perspective, photorealistic, NOT an illustration, NOT a painting, NOT a drawing, NOT street-level: ",
+  street:
+    "Ultra-realistic street photograph, shot at eye-level on Canon EOS R5, 35mm lens, shallow depth of field f/1.4, cinematic bokeh, showing people and daily life on the street, natural lighting, film grain, photorealistic, NOT an illustration, NOT a painting, NOT a drawing, NOT aerial: ",
+};
 
 /**
  * Generate an image for a historical era using Gemini via OpenRouter.
@@ -57,18 +68,19 @@ export async function generateEraImage(
   referenceImageUrls: string[],
   apiKey: string,
   signal?: AbortSignal,
-  model?: string
+  model?: string,
+  imageStyle: ImageStyle = "aerial"
 ): Promise<string> {
   const body = {
     model: model || DEFAULT_MODEL,
     messages: [
       {
         role: "system" as const,
-        content: PHOTOREALISM_SYSTEM,
+        content: SYSTEM_PROMPTS[imageStyle],
       },
       {
         role: "user" as const,
-        content: buildUserContent(PHOTOREALISM_PREFIX + prompt, referenceImageUrls),
+        content: buildUserContent(PREFIXES[imageStyle] + prompt, referenceImageUrls),
       },
     ],
     modalities: ["image", "text"],

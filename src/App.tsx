@@ -8,7 +8,7 @@ import { researchPlace, researchCustomYear } from "@/api/perplexity";
 import { generateEraImage } from "@/api/gemini";
 import { findCachedPlace, loadHistory, upsertHistory, saveHistory } from "@/lib/cache";
 import { saveImage, getImages, clearImages } from "@/lib/imageStore";
-import type { Era, CachedPlace, AppStatus, PerplexityResponse, ViewMode } from "@/types";
+import type { Era, CachedPlace, AppStatus, PerplexityResponse, ViewMode, ImageStyle } from "@/types";
 
 export default function App() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -33,6 +33,7 @@ export default function App() {
   const [pendingCountry, setPendingCountry] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("eras");
   const [customYear, setCustomYear] = useState<number | undefined>(undefined);
+  const [imageStyle, setImageStyle] = useState<ImageStyle>("aerial");
 
   // Keep a ref to history so handleMapClick always reads the latest cache
   const historyRef = useRef(history);
@@ -73,7 +74,8 @@ export default function App() {
     async (
       eraList: Era[],
       researchData: PerplexityResponse,
-      signal: AbortSignal
+      signal: AbortSignal,
+      style: ImageStyle = "aerial"
     ) => {
       for (let i = 0; i < eraList.length; i++) {
         if (signal.aborted) return;
@@ -98,7 +100,8 @@ export default function App() {
             refUrls,
             openrouterKey,
             signal,
-            imageModel
+            imageModel,
+            style
           );
 
           if (signal.aborted) return;
@@ -162,9 +165,10 @@ export default function App() {
       // Check cache first — if cached, skip mode picker and go straight to eras
       const cached = findCachedPlace(lat, lng, historyRef.current);
       if (cached) {
-        // Reuse cached data directly (eras mode, skip picker)
+        // Reuse cached data directly — skip picker entirely
         setViewMode("eras");
         setCustomYear(undefined);
+        setImageStyle(cached.imageStyle ?? "aerial");
         startFromCache(lat, lng, cached);
         return;
       }
@@ -189,9 +193,10 @@ export default function App() {
     [mapboxToken, placeMarkerAndFly]
   );
 
-  // ── Start from cache (eras mode) ─────────────────────────────────────
+  // ── Start from cache (eras mode) — uses stored imageStyle ─────────────
   const startFromCache = useCallback(
     async (lat: number, lng: number, cached: CachedPlace) => {
+      const cachedStyle = cached.imageStyle ?? "aerial";
       const controller = new AbortController();
       abortRef.current = controller;
 
@@ -236,7 +241,7 @@ export default function App() {
             citations: cached.citations,
             images: cached.referenceImages,
           };
-          generateAllImages(hydratedEras, researchData, controller.signal);
+          generateAllImages(hydratedEras, researchData, controller.signal, cachedStyle);
         }
       }
     },
@@ -245,12 +250,13 @@ export default function App() {
 
   // ── Mode picker selection → start appropriate flow ────────────────────
   const handleModeSelect = useCallback(
-    async (mode: ViewMode, yearInput?: number) => {
+    async (mode: ViewMode, style: ImageStyle, yearInput?: number) => {
       if (!pendingCoords) return;
 
       setShowModePicker(false);
       setViewMode(mode);
       setCustomYear(yearInput);
+      setImageStyle(style);
 
       const { lat, lng } = pendingCoords;
       const controller = new AbortController();
@@ -274,7 +280,8 @@ export default function App() {
             lng,
             perplexityKey,
             controller.signal,
-            pendingCityName || undefined
+            pendingCityName || undefined,
+            style
           );
 
           if (controller.signal.aborted) return;
@@ -307,10 +314,11 @@ export default function App() {
             citations: research.citations,
             referenceImages: research.images,
             savedAt: Date.now(),
+            imageStyle: style,
           };
           setHistory((prev) => upsertHistory(prev, cacheEntry));
 
-          await generateAllImages(eraList, research, controller.signal);
+          await generateAllImages(eraList, research, controller.signal, style);
         } else {
           // ── Custom year flow ─────────────────────────────────────
           const year = yearInput!;
@@ -320,7 +328,8 @@ export default function App() {
             year,
             perplexityKey,
             controller.signal,
-            pendingCityName || undefined
+            pendingCityName || undefined,
+            style
           );
 
           if (controller.signal.aborted) return;
@@ -350,7 +359,8 @@ export default function App() {
               refUrls,
               openrouterKey,
               controller.signal,
-              imageModel
+              imageModel,
+              style
             );
 
             if (controller.signal.aborted) return;

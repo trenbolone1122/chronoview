@@ -47,6 +47,8 @@ export interface CachedPlace {
   citations: string[];
   referenceImages: PerplexityImage[];
   savedAt: number;
+  /** Image perspective style used for this place */
+  imageStyle?: ImageStyle;
 }
 
 /** App-level status */
@@ -54,3 +56,6 @@ export type AppStatus = "idle" | "researching" | "generating" | "ready" | "error
 
 /** Which view mode the user chose after clicking a place */
 export type ViewMode = "eras" | "custom-year";
+
+/** Image perspective style chosen in mode picker */
+export type ImageStyle = "aerial" | "street";

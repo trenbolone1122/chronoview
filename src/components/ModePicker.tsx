@@ -1,21 +1,23 @@
 import { useState } from "react";
-import { Clock, Calendar } from "lucide-react";
-import type { ViewMode } from "@/types";
+import { Clock, Calendar, Mountain, PersonStanding } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { ViewMode, ImageStyle } from "@/types";
 
 interface ModePickerProps {
   cityName: string;
-  onSelect: (mode: ViewMode, customYear?: number) => void;
+  onSelect: (mode: ViewMode, imageStyle: ImageStyle, customYear?: number) => void;
   onClose: () => void;
 }
 
 export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
   const [yearInput, setYearInput] = useState("");
   const [showYearInput, setShowYearInput] = useState(false);
+  const [imageStyle, setImageStyle] = useState<ImageStyle>("aerial");
 
   const handleYearSubmit = () => {
     const y = parseInt(yearInput, 10);
     if (isNaN(y)) return;
-    onSelect("custom-year", y);
+    onSelect("custom-year", imageStyle, y);
   };
 
   return (
@@ -34,36 +36,83 @@ export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
         <p className="mb-5 text-xs text-white/40">How would you like to explore?</p>
 
         {!showYearInput ? (
-          <div className="flex flex-col gap-3">
-            {/* Travel through eras */}
-            <button
-              type="button"
-              onClick={() => onSelect("eras")}
-              className="group flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left transition-all hover:border-cyan-400/30 hover:bg-cyan-400/[0.05]"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-400 transition-colors group-hover:bg-cyan-400/20">
-                <Clock className="h-4 w-4" />
+          <div className="flex flex-col gap-4">
+            {/* ── Image style toggle ────────────────────────────── */}
+            <div>
+              <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.15em] text-white/30">
+                Image style
               </div>
-              <div>
-                <div className="text-sm font-medium text-white/90">Travel through eras</div>
-                <div className="text-[11px] text-white/35">5-6 historical periods with AI imagery</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImageStyle("aerial")}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all",
+                    imageStyle === "aerial"
+                      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
+                      : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/20 hover:bg-white/[0.05]"
+                  )}
+                >
+                  <Mountain className="h-4 w-4 shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium">Aerial</div>
+                    <div className="text-[10px] opacity-60">Bird's-eye cityscape</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageStyle("street")}
+                  className={cn(
+                    "flex items-center gap-2 rounded-lg border px-3 py-2.5 text-left transition-all",
+                    imageStyle === "street"
+                      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-300"
+                      : "border-white/10 bg-white/[0.03] text-white/50 hover:border-white/20 hover:bg-white/[0.05]"
+                  )}
+                >
+                  <PersonStanding className="h-4 w-4 shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium">Street View</div>
+                    <div className="text-[10px] opacity-60">Life at street level</div>
+                  </div>
+                </button>
               </div>
-            </button>
+            </div>
 
-            {/* Custom year */}
-            <button
-              type="button"
-              onClick={() => setShowYearInput(true)}
-              className="group flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left transition-all hover:border-cyan-400/30 hover:bg-cyan-400/[0.05]"
-            >
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-400 transition-colors group-hover:bg-cyan-400/20">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-white/90">Enter a custom year</div>
-                <div className="text-[11px] text-white/35">See this place in any specific year</div>
-              </div>
-            </button>
+            {/* ── Divider ───────────────────────────────────────── */}
+            <div className="h-px bg-white/5" />
+
+            {/* ── View mode choices ─────────────────────────────── */}
+            <div className="flex flex-col gap-3">
+              {/* Travel through eras */}
+              <button
+                type="button"
+                onClick={() => onSelect("eras", imageStyle)}
+                className="group flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left transition-all hover:border-cyan-400/30 hover:bg-cyan-400/[0.05]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-400 transition-colors group-hover:bg-cyan-400/20">
+                  <Clock className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white/90">Travel through eras</div>
+                  <div className="text-[11px] text-white/35">5-6 historical periods with AI imagery</div>
+                </div>
+              </button>
+
+              {/* Custom year */}
+              <button
+                type="button"
+                onClick={() => setShowYearInput(true)}
+                className="group flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3.5 text-left transition-all hover:border-cyan-400/30 hover:bg-cyan-400/[0.05]"
+              >
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-400 transition-colors group-hover:bg-cyan-400/20">
+                  <Calendar className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-white/90">Enter a custom year</div>
+                  <div className="text-[11px] text-white/35">See this place in any specific year</div>
+                </div>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
