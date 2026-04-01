@@ -79,6 +79,7 @@ export default function App() {
       resolvedPlaceName?: string
     ) => {
       for (let i = 0; i < eraList.length; i++) {
+        // Check abort at EVERY possible point
         if (signal.aborted) return;
 
         // Skip eras that already have images or errored out
@@ -86,12 +87,17 @@ export default function App() {
           continue;
         }
 
+        if (signal.aborted) return;
+
         // Set loading state for this era
         setEras((prev) => {
+          if (signal.aborted) return prev;
           const next = [...prev];
           if (next[i]) next[i] = { ...next[i], imageStatus: "loading" };
           return next;
         });
+
+        if (signal.aborted) return;
 
         try {
           const pEra = researchData.eras[i];
@@ -113,7 +119,10 @@ export default function App() {
           const eraId = eraList[i].id;
           saveImage(eraId, imageBase64).catch(() => {});
 
+          if (signal.aborted) return;
+
           setEras((prev) => {
+            if (signal.aborted) return prev;
             const next = [...prev];
             if (next[i])
               next[i] = { ...next[i], imageBase64, imageStatus: "ready" };
@@ -121,11 +130,12 @@ export default function App() {
           });
 
           // Auto-advance to this era once its image is ready
-          setActiveEraIndex(i);
+          if (!signal.aborted) setActiveEraIndex(i);
         } catch (err: unknown) {
           if (signal.aborted) return;
           const msg = err instanceof Error ? err.message : "Unknown error";
           setEras((prev) => {
+            if (signal.aborted) return prev;
             const next = [...prev];
             if (next[i])
               next[i] = {
@@ -138,7 +148,7 @@ export default function App() {
         }
       }
 
-      setStatus("ready");
+      if (!signal.aborted) setStatus("ready");
     },
     [openrouterKey, imageModel]
   );
@@ -234,30 +244,13 @@ export default function App() {
         setStatus("ready");
       } else if (anyReady) {
         // Partially completed (user cancelled mid-generation) — show what we have
-        // Jump to the last era that has an image
         const lastReadyIdx = hydratedEras.map((e, i) => e.imageStatus === "ready" ? i : -1).filter((i) => i >= 0).pop() ?? 0;
         setActiveEraIndex(lastReadyIdx);
         setStatus("ready");
       } else {
-        // No images at all — resume full generation
-        setStatus("generating");
-        const hasPending = hydratedEras.some((e) => e.imageStatus === "pending");
-        if (hasPending) {
-          const researchData: PerplexityResponse = {
-            placeName: cached.placeName,
-            country: cached.country,
-            eras: cached.eras.map((e) => ({
-              label: e.label,
-              year: e.year,
-              description: e.description,
-              imagePrompt: e.prompt,
-              cameraAngle: e.cameraAngle,
-            })),
-            citations: cached.citations,
-            images: cached.referenceImages,
-          };
-          generateAllImages(hydratedEras, researchData, controller.signal, cachedStyle);
-        }
+        // No images at all — show the timeline/structure but don't burn credits
+        // User can re-click from the globe to trigger fresh generation
+        setStatus("ready");
       }
     },
     [generateAllImages]
