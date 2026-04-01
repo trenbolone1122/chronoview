@@ -86,13 +86,7 @@ export function PlaceModal({
             <span className="text-xs font-medium uppercase tracking-[0.2em] text-white/40">
               Researching historical eras...
             </span>
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-2 rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest text-white/50 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white/80"
-            >
-              Cancel
-            </button>
+
           </div>
         )}
 
@@ -133,18 +127,7 @@ export function PlaceModal({
               />
             </div>
 
-            {/* Cancel button while generating */}
-            {status === "generating" && (
-              <div className="flex shrink-0 justify-center pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-md border border-white/10 bg-white/5 px-4 py-1.5 text-[11px] font-medium uppercase tracking-widest text-white/50 transition-colors hover:border-white/20 hover:bg-white/10 hover:text-white/80"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
+
           </div>
         )}
       </div>
