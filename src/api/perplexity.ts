@@ -21,7 +21,7 @@ const SCHEMA = {
           },
           year: {
             type: "integer" as const,
-            description: "Representative year for this era (e.g. 100, 1200, 1700, 1900, 2024)",
+            description: `Representative year for this era (e.g. 100, 1200, 1700, 1900, ${new Date().getFullYear()})`,
           },
           description: {
             type: "string" as const,
@@ -70,7 +70,7 @@ export async function researchPlace(
       messages: [
         {
           role: "system",
-          content: `You are a historical geography expert. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day. Each era must be a real historical period — no speculative future content. For each era, write a vivid image generation prompt that describes exactly what this place looked like. Include specific architectural styles, materials, vegetation, people, and atmospheric details. Use shallow depth of field (f/1.4 to f/2.8) photography style to create cinematic images with sharp foreground subjects and dreamy bokeh backgrounds. Vary the camera angle across eras for visual diversity.`,
+          content: `You are a historical geography expert. The current year is ${new Date().getFullYear()}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${new Date().getFullYear()}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${new Date().getFullYear()}. For each era, write a vivid image generation prompt that describes exactly what this place looked like. Include specific architectural styles, materials, vegetation, people, and atmospheric details. Use shallow depth of field (f/1.4 to f/2.8) photography style to create cinematic images with sharp foreground subjects and dreamy bokeh backgrounds. Vary the camera angle across eras for visual diversity.`,
         },
         {
           role: "user",
@@ -78,7 +78,7 @@ export async function researchPlace(
             6
           )}, ${lng.toFixed(
             6
-          )}. Identify what place this is, and provide 5-6 historically significant time periods for this exact location, from the earliest known era to present day (no future). For each era, include a detailed image generation prompt.`,
+          )}. Identify what place this is, and provide 5-6 historically significant time periods for this exact location, from the earliest known era to present day (${new Date().getFullYear()}). The last era must use the year ${new Date().getFullYear()}. For each era, include a detailed image generation prompt.`,
         },
       ],
       response_format: {
