@@ -48,7 +48,13 @@ export function loadHistory(): CachedPlace[] {
 export function saveHistory(places: CachedPlace[]): void {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(places));
+    // Strip heavy base64 image data — images are stored in IndexedDB.
+    // Only lightweight metadata goes into localStorage.
+    const lightweight = places.map((p) => ({
+      ...p,
+      eras: p.eras.map((e) => ({ ...e, imageBase64: null })),
+    }));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight));
   } catch {
     // Ignore storage failures
   }

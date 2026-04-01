@@ -5,6 +5,7 @@ import { HistorySidebar } from "@/components/HistorySidebar";
 import { researchPlace } from "@/api/perplexity";
 import { generateEraImage } from "@/api/gemini";
 import { findCachedPlace, loadHistory, upsertHistory, saveHistory } from "@/lib/cache";
+import { saveImage, getImages, clearImages } from "@/lib/imageStore";
 import type { Era, CachedPlace, AppStatus, PerplexityResponse } from "@/types";
 
 export default function App() {
@@ -68,6 +69,11 @@ export default function App() {
       for (let i = 0; i < eraList.length; i++) {
         if (signal.aborted) return;
 
+        // Skip eras that already have images or errored out
+        if (eraList[i].imageStatus === "ready" || eraList[i].imageStatus === "error") {
+          continue;
+        }
+
         // Set loading state for this era
         setEras((prev) => {
           const next = [...prev];
@@ -89,6 +95,10 @@ export default function App() {
           );
 
           if (signal.aborted) return;
+
+          // Persist to IndexedDB so cache hits don't need re-generation
+          const eraId = eraList[i].id;
+          saveImage(eraId, imageBase64).catch(() => {});
 
           setEras((prev) => {
             const next = [...prev];
@@ -146,29 +156,47 @@ export default function App() {
       if (cached) {
         setPlaceName(cached.placeName);
         setCountry(cached.country);
-        setEras(cached.eras);
-        setStatus(cached.eras.every((e) => e.imageStatus === "ready") ? "ready" : "generating");
         setError("");
-        // If any images are still pending, regenerate them
-        const hasPending = cached.eras.some(
-          (e) => e.imageStatus !== "ready"
-        );
-        if (hasPending) {
-          // Reconstruct minimal research data for re-generation
-          const researchData: PerplexityResponse = {
-            placeName: cached.placeName,
-            country: cached.country,
-            eras: cached.eras.map((e) => ({
-              label: e.label,
-              year: e.year,
-              description: e.description,
-              imagePrompt: e.prompt,
-              cameraAngle: e.cameraAngle,
-            })),
-            citations: cached.citations,
-            images: cached.referenceImages,
-          };
-          generateAllImages(cached.eras, researchData, controller.signal);
+
+        // Hydrate images from IndexedDB
+        const eraIds = cached.eras.map((e) => e.id);
+        const imageMap = await getImages(eraIds);
+
+        // Rebuild eras with images from IndexedDB + mark status correctly
+        const hydratedEras = cached.eras.map((e) => {
+          const img = imageMap.get(e.id) ?? null;
+          if (img) {
+            return { ...e, imageBase64: img, imageStatus: "ready" as const };
+          }
+          // Keep existing status (error stays error, pending stays pending)
+          return e;
+        });
+
+        setEras(hydratedEras);
+
+        const allReady = hydratedEras.every((e) => e.imageStatus === "ready");
+        if (allReady) {
+          setStatus("ready");
+        } else {
+          setStatus("generating");
+          // Only regenerate truly pending eras (not errored ones — those cost credits)
+          const hasPending = hydratedEras.some((e) => e.imageStatus === "pending");
+          if (hasPending) {
+            const researchData: PerplexityResponse = {
+              placeName: cached.placeName,
+              country: cached.country,
+              eras: cached.eras.map((e) => ({
+                label: e.label,
+                year: e.year,
+                description: e.description,
+                imagePrompt: e.prompt,
+                cameraAngle: e.cameraAngle,
+              })),
+              citations: cached.citations,
+              images: cached.referenceImages,
+            };
+            generateAllImages(hydratedEras, researchData, controller.signal);
+          }
         }
         return;
       }
@@ -223,19 +251,8 @@ export default function App() {
         };
         setHistory((prev) => upsertHistory(prev, cacheEntry));
 
-        // Start generating images
+        // Start generating images (each one saves to IndexedDB on success)
         await generateAllImages(eraList, research, controller.signal);
-
-        // Update cache with generated images
-        setEras((currentEras) => {
-          const finalEntry: CachedPlace = {
-            ...cacheEntry,
-            eras: currentEras,
-            savedAt: Date.now(),
-          };
-          setHistory((prev) => upsertHistory(prev, finalEntry));
-          return currentEras;
-        });
       } catch (err: unknown) {
         if (controller.signal.aborted) return;
         const msg = err instanceof Error ? err.message : "Unknown error";
@@ -246,16 +263,23 @@ export default function App() {
     [perplexityKey, openrouterKey, generateAllImages]
   );
 
-  // ── Sync eras to localStorage cache whenever an image becomes ready ──
+  // ── Sync era statuses to localStorage (not images — those are in IndexedDB)
+  // This ensures cache entries know which eras succeeded/errored.
   useEffect(() => {
     if (!coords || eras.length === 0) return;
-    const hasAnyReady = eras.some((e) => e.imageStatus === "ready");
-    if (!hasAnyReady) return;
+    const hasAnyDone = eras.some(
+      (e) => e.imageStatus === "ready" || e.imageStatus === "error"
+    );
+    if (!hasAnyDone) return;
 
-    // Find the existing cache entry and update its eras
     const existing = findCachedPlace(coords.lat, coords.lng, historyRef.current);
     if (existing) {
-      const updated: CachedPlace = { ...existing, eras, savedAt: Date.now() };
+      // Update statuses only (imageBase64 is stripped by saveHistory anyway)
+      const updatedEras = eras.map((e) => ({
+        ...e,
+        imageBase64: null, // always null in localStorage
+      }));
+      const updated: CachedPlace = { ...existing, eras: updatedEras, savedAt: Date.now() };
       setHistory((prev) => upsertHistory(prev, updated));
     }
   }, [eras, coords]);
@@ -296,6 +320,7 @@ export default function App() {
   const handleClearHistory = useCallback(() => {
     setHistory([]);
     saveHistory([]);
+    clearImages().catch(() => {});
   }, []);
 
   // ── Missing keys warning ──────────────────────────────────────────────
