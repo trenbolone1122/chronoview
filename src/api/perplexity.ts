@@ -31,12 +31,12 @@ const SCHEMA = {
           imagePrompt: {
             type: "string" as const,
             description:
-              "A detailed PHOTOREALISTIC image generation prompt describing this exact location in this era as if photographed by a real camera. The image must look like a real photograph, NEVER an illustration, painting, drawing, or artistic rendering. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8) to make foreground sharp and background dreamy. Be specific about camera perspective and lens choice.",
+              "A detailed PHOTOREALISTIC image prompt showing this city/place in this era as a WIDE ESTABLISHING SHOT. MUST be an elevated or aerial perspective (bird's-eye, drone shot, hilltop viewpoint, or high-angle panorama) that captures the full cityscape, skyline, landmark buildings, surrounding geography (rivers, mountains, coastline), and the overall urban/settlement layout. Show what makes THIS specific place visually unique — not a generic street scene. Include era-accurate architecture, infrastructure, vegetation, and atmosphere. The image must look like a real photograph from a drone or elevated vantage point, NEVER an illustration.",
           },
           cameraAngle: {
             type: "string" as const,
             description:
-              "Camera angle for the image: one of 'eye-level', 'low-angle', 'high-angle', 'bird-eye', 'street-level', '3/4-angle'",
+              "Camera angle: MUST be one of 'bird-eye', 'drone-aerial', 'high-angle-panorama', 'hilltop-viewpoint', 'elevated-3/4'. Always elevated to show the full cityscape — never street-level or eye-level.",
           },
         },
         required: [
@@ -73,7 +73,7 @@ export async function researchPlace(
       messages: [
         {
           role: "system",
-          content: `You are a historical geography expert. The current year is ${new Date().getFullYear()}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${new Date().getFullYear()}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${new Date().getFullYear()}. For each era, write a vivid image generation prompt that describes exactly what this place looked like. Include specific architectural styles, materials, vegetation, people, and atmospheric details. Use shallow depth of field (f/1.4 to f/2.8) photography style to create cinematic images with sharp foreground subjects and dreamy bokeh backgrounds. Vary the camera angle across eras for visual diversity.`,
+          content: `You are a historical geography expert. The current year is ${new Date().getFullYear()}. Given GPS coordinates, identify the location and provide 5-6 historically significant eras for that place, from the earliest notable period to the present day (${new Date().getFullYear()}). Each era must be a real historical period — no speculative future content. The final era should represent the present day and use the year ${new Date().getFullYear()}. For each era, write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, river/coast/mountain features, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`,
         },
         {
           role: "user",
@@ -164,12 +164,12 @@ const CUSTOM_YEAR_SCHEMA = {
         imagePrompt: {
           type: "string" as const,
           description:
-            "A detailed PHOTOREALISTIC image generation prompt describing this exact location in this year as if photographed by a real camera. The image must look like a real photograph, NEVER an illustration, painting, drawing, or artistic rendering. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8). Be specific about camera perspective and lens choice.",
+            "A detailed PHOTOREALISTIC image prompt showing this city/place in this year as a WIDE ESTABLISHING SHOT. MUST be an elevated or aerial perspective (bird's-eye, drone shot, hilltop viewpoint, or high-angle panorama) that captures the full cityscape, skyline, landmark buildings, surrounding geography (rivers, mountains, coastline), and the overall urban/settlement layout. Show what makes THIS specific place visually unique — not a generic street scene. Include era-accurate architecture, infrastructure, vegetation, and atmosphere. The image must look like a real photograph from a drone or elevated vantage point, NEVER an illustration.",
         },
         cameraAngle: {
           type: "string" as const,
           description:
-            "Camera angle for the image: one of 'eye-level', 'low-angle', 'high-angle', 'bird-eye', 'street-level', '3/4-angle'",
+            "Camera angle: MUST be one of 'bird-eye', 'drone-aerial', 'high-angle-panorama', 'hilltop-viewpoint', 'elevated-3/4'. Always elevated to show the full cityscape — never street-level or eye-level.",
         },
       },
       required: ["label", "year", "description", "imagePrompt", "cameraAngle"],
@@ -216,7 +216,7 @@ export async function researchCustomYear(
       messages: [
         {
           role: "system",
-          content: `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. Write a vivid image generation prompt with specific architectural styles, materials, vegetation, people, and atmospheric details. Use shallow depth of field (f/1.4 to f/2.8) photography style.`,
+          content: `You are a historical geography expert. The current year is ${currentYear}. Given GPS coordinates and a specific year, describe what this location looked like (or would plausibly look like) in that year. Write a vivid image generation prompt describing a WIDE ESTABLISHING SHOT from an elevated/aerial vantage point — as if photographed by a drone, from a hilltop, or from an aircraft. Show the full cityscape, skyline, and surrounding geography. Include specific architectural styles, landmark buildings, infrastructure, and era-accurate atmosphere. NEVER describe street-level or eye-level scenes. Every image must look like a real photograph.`,
         },
         {
           role: "user",

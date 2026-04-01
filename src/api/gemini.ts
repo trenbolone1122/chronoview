@@ -43,10 +43,10 @@ function buildUserContent(
   return parts;
 }
 
-/** Enforce photorealism — no illustrations, paintings, anime, etc. */
-const PHOTOREALISM_SYSTEM = `You are a photorealistic image generator. EVERY image you produce MUST look like a real photograph taken with a real camera. Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. The output must be indistinguishable from a real photo — proper lighting, lens effects, film grain, natural textures. If the scene is historical, imagine a time traveler took a DSLR camera back in time and photographed it.`;
+/** Enforce photorealism + aerial/establishing perspective */
+const PHOTOREALISM_SYSTEM = `You are a photorealistic image generator specializing in WIDE AERIAL/ESTABLISHING SHOTS of cities. EVERY image you produce MUST look like a real photograph taken from an elevated vantage point — a drone, hilltop, rooftop, or aircraft. Show the full cityscape, skyline, landmark buildings, and surrounding geography (rivers, mountains, coastline). Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce street-level, eye-level, or close-up shots. The output must be indistinguishable from a real aerial photograph — proper lighting, atmospheric haze, natural textures, wide depth of field. If the scene is historical, imagine a time traveler flew a drone over the city and photographed it from above.`;
 
-const PHOTOREALISM_PREFIX = "Ultra-realistic photograph, shot on Canon EOS R5, 35mm lens, natural lighting, photorealistic, NOT an illustration, NOT a painting, NOT a drawing: ";
+const PHOTOREALISM_PREFIX = "Ultra-realistic aerial photograph, wide establishing shot, shot from elevated vantage point with DJI Mavic 3 drone, 24mm wide-angle lens, wide depth of field f/8, showing full cityscape and skyline, natural lighting, atmospheric perspective, photorealistic, NOT an illustration, NOT a painting, NOT a drawing, NOT street-level: ";
 
 /**
  * Generate an image for a historical era using Gemini via OpenRouter.
