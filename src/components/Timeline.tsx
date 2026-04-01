@@ -12,35 +12,30 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
 
   const DOT_SIZE = 14;
   const ACTIVE_DOT_SIZE = 20;
-  const MASK_PAD = 6; // extra px around dot for line masking
+  const MASK_PAD = 6;
 
   return (
-    <div className="w-full px-4 py-2">
-      {/* Single unified row: each column contains dot + label vertically */}
+    <div className="w-full px-2 py-2">
+      {/* Row with justify-between so first dot is at left edge, last at right edge */}
       <div className="relative flex w-full items-start justify-between">
-        {/* Background line — spans between first and last dot centers */}
+        {/* Background line — edge to edge */}
         <div
-          className="pointer-events-none absolute h-px bg-white/10"
-          style={{
-            top: ACTIVE_DOT_SIZE / 2,
-            left: `${100 / (eras.length * 2)}%`,
-            right: `${100 / (eras.length * 2)}%`,
-          }}
+          className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
+          style={{ top: ACTIVE_DOT_SIZE / 2 }}
         />
 
-        {/* Progress line */}
+        {/* Progress line — 0% to activeIndex position */}
         {eras.length > 1 && (
           <div
-            className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
+            className="pointer-events-none absolute left-0 h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
               top: ACTIVE_DOT_SIZE / 2,
-              left: `${100 / (eras.length * 2)}%`,
-              width: `${(activeIndex / (eras.length - 1)) * (1 - 1 / eras.length) * 100}%`,
+              width: `${(activeIndex / (eras.length - 1)) * 100}%`,
             }}
           />
         )}
 
-        {/* Columns */}
+        {/* Columns — no fixed width, spread by justify-between */}
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -55,9 +50,8 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               type="button"
               onClick={() => onSelect(i)}
               className="z-10 flex flex-col items-center gap-1.5"
-              style={{ width: `${100 / eras.length}%` }}
             >
-              {/* Dot container — fixed height to keep all dots aligned */}
+              {/* Dot container */}
               <div
                 className="relative flex items-center justify-center"
                 style={{ width: ACTIVE_DOT_SIZE, height: ACTIVE_DOT_SIZE }}
@@ -96,7 +90,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
                 </div>
               </div>
 
-              {/* Label + year — directly below its dot */}
+              {/* Label + year */}
               <div className="flex flex-col items-center gap-0.5">
                 <span
                   className={cn(
