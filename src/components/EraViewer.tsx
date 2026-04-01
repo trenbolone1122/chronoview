@@ -94,11 +94,8 @@ export function EraViewer({ era, placeName, hideDescription }: EraViewerProps) {
       {/* Description — compact below image */}
       {!hideDescription && era.description && (
         <div className="shrink-0 space-y-1.5 px-1 pt-3">
-          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-white/40">
-            <span className="h-px w-3 bg-white/10" />
-            <span>
-              {era.label} — {era.year < 0 ? `${Math.abs(era.year)} BC` : era.year}
-            </span>
+          <div className="text-[12px] font-semibold uppercase tracking-[0.15em] text-white/50">
+            {era.label}, {era.year < 0 ? `${Math.abs(era.year)} BC` : era.year}
           </div>
           <p className="text-sm leading-relaxed text-white/70">
             {era.description}

@@ -16,7 +16,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
     <div
       className={cn(
         "absolute left-0 top-0 z-20 flex h-full flex-row-reverse transition-all duration-300 ease-out",
-        expanded ? "w-64" : "w-10"
+        expanded ? "w-72" : "w-10"
       )}
     >
       {/* Toggle button */}
@@ -51,7 +51,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
         <div className="flex items-center justify-between border-b border-white/5 px-3 py-3">
           <div className="flex items-center gap-2">
             <History className="h-3 w-3 text-white/40" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
+            <span className="text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
               History
             </span>
           </div>
@@ -91,14 +91,14 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
                     onClick={() => onSelect(place.lat, place.lng)}
                     className="flex flex-col gap-1 border-b border-white/5 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
                   >
-                    <span className="text-[11px] font-medium text-white/70 leading-tight">
+                    <span className="text-sm font-medium text-white/70 leading-tight">
                       {place.placeName}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] text-white/30">
+                      <span className="text-xs text-white/35">
                         {place.country}
                       </span>
-                      <span className="text-[9px] text-white/15">
+                      <span className="text-[11px] text-white/20">
                         {readyCount}/{totalCount} images
                       </span>
                     </div>

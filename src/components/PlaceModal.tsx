@@ -60,20 +60,24 @@ export function PlaceModal({
           <X className="h-4 w-4" />
         </button>
 
-        {/* Header — compact */}
-        <div className="mb-3 shrink-0 space-y-0.5 pr-10">
-          <h2 className="text-xl font-semibold tracking-tight text-white md:text-2xl">
-            {status === "researching" ? "Researching..." : placeName || "Unknown Location"}
-          </h2>
-          <div className="flex items-center gap-3 text-[11px] text-white/40">
-            {country && <span>{country}</span>}
+        {/* Header */}
+        <div className="mb-3 shrink-0 pr-10">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-lg font-semibold tracking-tight text-white md:text-xl">
+              {status === "researching" ? "Researching..." : placeName || "Unknown Location"}
+            </h2>
+            {country && (
+              <span className="text-sm text-white/40">{country}</span>
+            )}
+          </div>
+          <div className="mt-1 flex items-center gap-3 text-xs text-white/30">
             {coords && (
               <span className="font-mono tabular-nums">
                 {formatCoord(coords.lat)}, {formatCoord(coords.lng)}
               </span>
             )}
             {viewMode === "custom-year" && customYear != null && (
-              <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-cyan-300/80">
+              <span className="rounded bg-cyan-400/10 px-1.5 py-0.5 text-xs text-cyan-300/80">
                 Year {customYear < 0 ? `${Math.abs(customYear)} BC` : customYear}
               </span>
             )}
