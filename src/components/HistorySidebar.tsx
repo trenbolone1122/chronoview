@@ -16,7 +16,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
     <div
       className={cn(
         "absolute left-0 top-0 z-20 flex h-full flex-row-reverse transition-all duration-300 ease-out",
-        expanded ? "w-72" : "w-10"
+        expanded ? "w-80" : "w-10"
       )}
     >
       {/* Toggle button */}
@@ -50,7 +50,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/5 px-3 py-3">
           <div className="flex items-center gap-2">
-            <History className="h-3 w-3 text-white/40" />
+            <History className="h-4 w-4 text-white/40" />
             <span className="text-xs font-semibold uppercase tracking-[0.15em] text-white/50">
               History
             </span>
@@ -59,10 +59,11 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
             <button
               type="button"
               onClick={onClear}
-              className="flex items-center gap-1 text-[9px] text-white/25 transition-colors hover:text-red-400/60"
+              className="flex items-center gap-1.5 rounded px-1.5 py-1 text-xs text-white/30 transition-colors hover:bg-white/5 hover:text-red-400/60"
               title="Clear history"
             >
-              <Trash2 className="h-2.5 w-2.5" />
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Clear</span>
             </button>
           )}
         </div>
@@ -89,7 +90,7 @@ export function HistorySidebar({ history, onSelect, onClear }: HistorySidebarPro
                     key={place.id}
                     type="button"
                     onClick={() => onSelect(place.lat, place.lng)}
-                    className="flex flex-col gap-1 border-b border-white/5 px-3 py-2.5 text-left transition-colors hover:bg-white/5"
+                    className="flex flex-col gap-1 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/5"
                   >
                     <span className="text-sm font-medium text-white/70 leading-tight">
                       {place.placeName}
