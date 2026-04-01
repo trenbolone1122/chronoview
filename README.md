@@ -16,7 +16,7 @@ Click any place on the globe. AI researches its history, generates photorealisti
 2. **Choose a view mode** — browse through historically significant eras, or enter a custom year
 3. **Pick an image style** — aerial (drone/cityscape) or street view (eye-level with people)
 4. **Perplexity Sonar Pro** researches the place: identifies 5–6 key eras, writes historically grounded image prompts, and returns reference images from the web
-5. **Gemini (via OpenRouter)** generates a photorealistic image for each era using the research context + reference images
+5. **Nano Banana (Gemini image models via OpenRouter)** generates a photorealistic image for each era using the research context + reference images
 6. **Browse the timeline** — click any era dot to jump between periods. Everything is cached so re-visiting a place is instant
 
 ### Caching
@@ -68,7 +68,7 @@ You need three API keys. All run client-side — nothing leaves your browser exc
 | Variable | What it does | Get it here |
 |----------|-------------|-------------|
 | `VITE_PERPLEXITY_API_KEY` | Historical research via Sonar Pro | [perplexity.ai/settings/api](https://www.perplexity.ai/settings/api) |
-| `VITE_OPENROUTER_API_KEY` | Image generation via Gemini | [openrouter.ai/keys](https://openrouter.ai/keys) |
+| `VITE_OPENROUTER_API_KEY` | Image generation via Nano Banana | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | `VITE_MAPBOX_TOKEN` | Map rendering + geocoding | [mapbox.com/account/access-tokens](https://account.mapbox.com/access-tokens/) |
 | `VITE_IMAGE_MODEL` (optional) | Override the default image model | Default: `google/gemini-2.5-flash-image` |
 
@@ -92,7 +92,7 @@ User clicks map (lat, lng)
       │
       └─ For each era (sequential):
           │
-          └─ OpenRouter → Gemini 2.5 Flash Image
+          └─ OpenRouter → Nano Banana (Gemini 2.5 Flash Image)
               ├─ System prompt: per-style (aerial / street), strict historical accuracy
               ├─ User prompt: research-generated image description + prefix
               ├─ Reference images as multimodal image_url parts (up to 3)
@@ -108,7 +108,7 @@ User clicks map (lat, lng)
 - **Styling**: Tailwind CSS v4, shadcn/ui primitives, Geist fonts
 - **Map**: Mapbox GL JS (dark-v11 style)
 - **Research**: Perplexity Sonar Pro API (structured JSON + web image search)
-- **Image Gen**: OpenRouter API → Gemini 2.5 Flash Image (photorealistic, 16:9)
+- **Image Gen**: OpenRouter API → Nano Banana (Gemini image models) (photorealistic, 16:9)
 - **Storage**: localStorage (research cache, 1km dedup), IndexedDB (base64 images)
 
 ---
