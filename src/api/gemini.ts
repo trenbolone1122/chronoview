@@ -43,6 +43,11 @@ function buildUserContent(
   return parts;
 }
 
+/** Enforce photorealism — no illustrations, paintings, anime, etc. */
+const PHOTOREALISM_SYSTEM = `You are a photorealistic image generator. EVERY image you produce MUST look like a real photograph taken with a real camera. Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. The output must be indistinguishable from a real photo — proper lighting, lens effects, film grain, natural textures. If the scene is historical, imagine a time traveler took a DSLR camera back in time and photographed it.`;
+
+const PHOTOREALISM_PREFIX = "Ultra-realistic photograph, shot on Canon EOS R5, 35mm lens, natural lighting, photorealistic, NOT an illustration, NOT a painting, NOT a drawing: ";
+
 /**
  * Generate an image for a historical era using Gemini via OpenRouter.
  * Returns a base64 data URL (data:image/png;base64,...).
@@ -58,8 +63,12 @@ export async function generateEraImage(
     model: model || DEFAULT_MODEL,
     messages: [
       {
+        role: "system" as const,
+        content: PHOTOREALISM_SYSTEM,
+      },
+      {
         role: "user" as const,
-        content: buildUserContent(prompt, referenceImageUrls),
+        content: buildUserContent(PHOTOREALISM_PREFIX + prompt, referenceImageUrls),
       },
     ],
     modalities: ["image", "text"],

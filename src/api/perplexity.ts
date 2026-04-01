@@ -31,7 +31,7 @@ const SCHEMA = {
           imagePrompt: {
             type: "string" as const,
             description:
-              "A detailed image generation prompt describing this exact location in this era. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8) to make foreground sharp and background dreamy. Be specific about camera perspective.",
+              "A detailed PHOTOREALISTIC image generation prompt describing this exact location in this era as if photographed by a real camera. The image must look like a real photograph, NEVER an illustration, painting, drawing, or artistic rendering. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8) to make foreground sharp and background dreamy. Be specific about camera perspective and lens choice.",
           },
           cameraAngle: {
             type: "string" as const,
@@ -164,7 +164,7 @@ const CUSTOM_YEAR_SCHEMA = {
         imagePrompt: {
           type: "string" as const,
           description:
-            "A detailed image generation prompt describing this exact location in this year. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8). Be specific about camera perspective.",
+            "A detailed PHOTOREALISTIC image generation prompt describing this exact location in this year as if photographed by a real camera. The image must look like a real photograph, NEVER an illustration, painting, drawing, or artistic rendering. Include: architecture style, materials, surrounding landscape, people/activity, time of day, weather, atmospheric details. Use shallow depth of field (f/1.4-f/2.8). Be specific about camera perspective and lens choice.",
         },
         cameraAngle: {
           type: "string" as const,
