@@ -135,7 +135,7 @@ export function ModePicker({ cityName, onSelect, onClose }: ModePickerProps) {
                 onKeyDown={(e) => e.key === "Enter" && handleYearSubmit()}
                 placeholder={isBc ? "e.g. 500, 3000" : "e.g. 1850, 2020"}
                 autoFocus
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-400/20"
+                className="w-full appearance-none rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:border-cyan-400/40 focus:outline-none focus:ring-1 focus:ring-cyan-400/20 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
               />
               <button
                 type="button"
