@@ -17,28 +17,20 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
   const cols = eras.length;
   const last = cols - 1;
 
-  /* Each dot is positioned at i/(cols-1)*100% so the first dot is flush-left
-     and the last dot is flush-right. Lines only exist BETWEEN dots. */
   const dotPct = (i: number) => (last === 0 ? 50 : (i / last) * 100);
 
   return (
     <div className="w-full px-2 py-2">
-      {/* Container — labels are placed below via flex; the dot+line layer is
-          positioned absolutely so dots can be placed at exact percentages. */}
       <div className="relative w-full" style={{ minHeight: ACTIVE_DOT_SIZE }}>
-        {/* Background line — from first dot center to last dot center */}
+        {/* Background line — first dot to last dot */}
         {cols > 1 && (
           <div
             className="pointer-events-none absolute h-px bg-white/10"
-            style={{
-              top: ACTIVE_DOT_SIZE / 2,
-              left: "0%",
-              right: "0%",
-            }}
+            style={{ top: ACTIVE_DOT_SIZE / 2, left: "0%", right: "0%" }}
           />
         )}
 
-        {/* Progress (lit) line — from first dot center to active dot center */}
+        {/* Progress (lit) line */}
         {cols > 1 && activeIndex > 0 && (
           <div
             className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
@@ -50,7 +42,6 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           />
         )}
 
-        {/* Dots — absolutely positioned at their percentage */}
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -58,6 +49,28 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           const isError = era.imageStatus === "error";
           const isPast = i <= activeIndex;
           const dotSize = isActive ? ACTIVE_DOT_SIZE : DOT_SIZE;
+
+          const isFirst = i === 0;
+          const isLast = i === last && last > 0;
+
+          /*
+           * The button is always centered on the dot position via translateX(-50%).
+           * The label <div> inside shifts to avoid clipping at edges:
+           *   - First: shift right so its left edge starts at the dot center
+           *   - Last:  shift left so its right edge ends at the dot center
+           *   - Middle: no shift, stays centered
+           */
+          const labelStyle: React.CSSProperties = isFirst
+            ? { transform: "translateX(calc(50% - 10px))" }
+            : isLast
+              ? { transform: "translateX(calc(-50% + 10px))" }
+              : {};
+
+          const labelAlign = isFirst
+            ? "items-start text-left"
+            : isLast
+              ? "items-end text-right"
+              : "items-center text-center";
 
           return (
             <button
@@ -71,21 +84,15 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
                 transform: "translateX(-50%)",
               }}
             >
-              {/* Dot container */}
+              {/* Dot */}
               <div
                 className="relative flex items-center justify-center"
                 style={{ width: ACTIVE_DOT_SIZE, height: ACTIVE_DOT_SIZE }}
               >
-                {/* Dark mask — hides line behind dot */}
                 <div
                   className="absolute rounded-full bg-[#0a0a0a] transition-all duration-300"
-                  style={{
-                    width: dotSize + MASK_PAD,
-                    height: dotSize + MASK_PAD,
-                  }}
+                  style={{ width: dotSize + MASK_PAD, height: dotSize + MASK_PAD }}
                 />
-
-                {/* Visible dot */}
                 <div
                   className={cn(
                     "relative flex items-center justify-center rounded-full border-2 transition-all duration-300",
@@ -111,10 +118,13 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               </div>
 
               {/* Label + year */}
-              <div className="mt-1.5 flex flex-col items-center gap-0.5">
+              <div
+                className={cn("mt-1.5 flex w-max flex-col gap-0.5", labelAlign)}
+                style={labelStyle}
+              >
                 <span
                   className={cn(
-                    "max-w-[140px] truncate text-center text-[11px] font-semibold uppercase leading-tight tracking-[0.04em] transition-colors",
+                    "max-w-[160px] truncate text-[11px] font-semibold uppercase leading-tight tracking-[0.04em] transition-colors",
                     isActive
                       ? "text-cyan-300"
                       : isFilled
@@ -138,7 +148,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
         })}
       </div>
 
-      {/* Spacer to account for the labels below the absolutely positioned dots */}
+      {/* Spacer for labels below the absolutely positioned dots */}
       <div style={{ height: 36 }} />
     </div>
   );
