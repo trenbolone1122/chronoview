@@ -66,9 +66,6 @@ export default function App() {
           return next;
         });
 
-        // Auto-advance to the era being generated
-        setActiveEraIndex(i);
-
         try {
           const pEra = researchData.eras[i];
           // Feed real image URLs from Sonar's return_images (top-level images[])
