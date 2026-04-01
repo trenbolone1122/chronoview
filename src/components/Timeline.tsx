@@ -29,13 +29,19 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           style={{ top: ACTIVE_DOT_SIZE / 2 }}
         />
 
-        {/* Progress line — 0 to active dot center */}
-        {cols > 1 && (
+        {/*
+          Progress line — from first dot center to active dot center.
+          Each dot center sits at (i + 0.5) / cols * 100%.
+          So first dot center = halfCol, active dot center = (activeIndex + 0.5) / cols * 100%.
+          Line starts at halfCol, width = distance between first and active dot centers.
+        */}
+        {cols > 1 && activeIndex > 0 && (
           <div
-            className="pointer-events-none absolute left-0 h-px bg-cyan-400/60 transition-all duration-700 ease-out"
+            className="pointer-events-none absolute h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
               top: ACTIVE_DOT_SIZE / 2,
-              width: `${(activeIndex / (cols - 1)) * 100}%`,
+              left: `${(0.5 / cols) * 100}%`,
+              width: `${(activeIndex / cols) * 100}%`,
             }}
           />
         )}
