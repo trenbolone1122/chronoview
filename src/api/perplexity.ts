@@ -161,6 +161,7 @@ export async function researchPlace(
       return_images: true,
       image_format_filter: ["jpeg", "png", "webp"],
       temperature: 0.3,
+      max_tokens: 8192,
     }),
   });
 
@@ -266,6 +267,7 @@ export async function researchCustomYear(
       return_images: true,
       image_format_filter: ["jpeg", "png", "webp"],
       temperature: 0.3,
+      max_tokens: 8192,
     }),
   });
 
