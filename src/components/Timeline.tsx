@@ -7,21 +7,34 @@ interface TimelineProps {
   onSelect: (index: number) => void;
 }
 
+/**
+ * The line must NOT enter the circles. We achieve this by:
+ * - Rendering the line segments BETWEEN dots (not a single spanning line)
+ * - Each segment spans from one dot center to the next, with margin to clear the dot radius
+ *
+ * Alternative (simpler): Give each dot a solid bg ring that masks the line behind it.
+ * We use the masking approach — a dark ring behind each dot hides the line.
+ */
+
 export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
   if (!eras.length) return null;
 
-  // Dot row height is fixed at 20px. Line goes through the center (10px).
-  const DOT_ROW_H = 20; // px
-  const LINE_TOP = DOT_ROW_H / 2; // center of dot row
+  const DOT_SIZE = 14; // px — outer dot diameter (visible)
+  const ACTIVE_DOT_SIZE = 20; // px — active dot is scaled up
+  const ROW_H = 28; // px — row height (enough for active dot)
+  const LINE_Y = ROW_H / 2;
 
   return (
-    <div className="w-full px-4 py-3">
-      {/* ── Dot row with lines ────────────────────────────── */}
-      <div className="relative flex w-full items-center justify-between" style={{ height: DOT_ROW_H }}>
-        {/* Background line */}
+    <div className="w-full px-6 py-2">
+      {/* ── Dot + line row ─────────────────────────────────── */}
+      <div
+        className="relative flex w-full items-center justify-between"
+        style={{ height: ROW_H }}
+      >
+        {/* Background line — full width behind everything */}
         <div
           className="pointer-events-none absolute left-0 right-0 h-px bg-white/10"
-          style={{ top: LINE_TOP }}
+          style={{ top: LINE_Y }}
         />
 
         {/* Progress line */}
@@ -29,13 +42,13 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           <div
             className="pointer-events-none absolute left-0 h-px bg-cyan-400/60 transition-all duration-700 ease-out"
             style={{
-              top: LINE_TOP,
+              top: LINE_Y,
               width: `${(activeIndex / (eras.length - 1)) * 100}%`,
             }}
           />
         )}
 
-        {/* Dots */}
+        {/* Dots — each has a dark masking ring so the line doesn't enter */}
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -43,18 +56,29 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           const isError = era.imageStatus === "error";
           const isPast = i <= activeIndex;
 
+          const size = isActive ? ACTIVE_DOT_SIZE : DOT_SIZE;
+
           return (
             <button
               key={era.id}
               type="button"
               onClick={() => onSelect(i)}
               className="relative z-10 flex items-center justify-center"
-              style={{ width: DOT_ROW_H, height: DOT_ROW_H }}
+              style={{ width: ACTIVE_DOT_SIZE, height: ROW_H }}
             >
+              {/* Dark masking circle — hides the line behind the dot */}
+              <div
+                className="absolute rounded-full bg-[#0a0a0a] transition-all duration-300"
+                style={{
+                  width: size + 6,
+                  height: size + 6,
+                }}
+              />
+
+              {/* Visible dot */}
               <div
                 className={cn(
-                  "relative flex h-3 w-3 items-center justify-center rounded-full border-2 transition-all duration-300",
-                  isActive && "scale-150",
+                  "relative flex items-center justify-center rounded-full border-2 transition-all duration-300",
                   isError
                     ? "border-red-400/60 bg-red-400/20"
                     : isLoading
@@ -65,6 +89,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
                           ? "border-white/40 bg-white/10"
                           : "border-white/20 bg-transparent"
                 )}
+                style={{ width: size, height: size }}
               >
                 {isLoading && (
                   <div className="absolute inset-0 animate-ping rounded-full bg-cyan-400/30" />
@@ -79,7 +104,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
       </div>
 
       {/* ── Label row ─────────────────────────────────────── */}
-      <div className="mt-1.5 flex w-full justify-between">
+      <div className="mt-2 flex w-full justify-between">
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";
@@ -94,7 +119,7 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
             >
               <span
                 className={cn(
-                  "max-w-[90px] truncate text-center text-[9px] font-semibold uppercase leading-tight tracking-[0.08em] transition-colors",
+                  "max-w-[130px] truncate text-center text-[11px] font-semibold uppercase leading-tight tracking-[0.06em] transition-colors",
                   isActive
                     ? "text-cyan-300"
                     : isFilled
@@ -106,8 +131,8 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
               </span>
               <span
                 className={cn(
-                  "text-[8px] tabular-nums transition-colors",
-                  isActive ? "text-cyan-300/70" : "text-white/15"
+                  "text-[10px] tabular-nums transition-colors",
+                  isActive ? "text-cyan-300/70" : "text-white/20"
                 )}
               >
                 {era.year < 0 ? `${Math.abs(era.year)} BC` : era.year}

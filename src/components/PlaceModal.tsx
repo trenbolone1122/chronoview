@@ -44,11 +44,11 @@ export function PlaceModal({
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-3 backdrop-blur-sm md:p-5"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-2 backdrop-blur-sm md:p-3"
       onClick={onClose}
     >
       <div
-        className="relative flex h-[92vh] w-full max-w-6xl flex-col rounded-xl border border-white/10 bg-[#0a0a0a]/95 p-4 shadow-2xl backdrop-blur-xl md:p-6"
+        className="relative flex h-[96vh] w-full max-w-7xl flex-col rounded-xl border border-white/10 bg-[#0a0a0a]/95 p-4 shadow-2xl backdrop-blur-xl md:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
