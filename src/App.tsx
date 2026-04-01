@@ -352,6 +352,21 @@ export default function App() {
           setEras([singleEra]);
           setStatus("generating");
 
+          // Cache custom year result in history
+          const cacheEntry: CachedPlace = {
+            id: `${lat.toFixed(4)}-${lng.toFixed(4)}`,
+            lat,
+            lng,
+            placeName: research.placeName,
+            country: research.country,
+            eras: [singleEra],
+            citations: research.citations,
+            referenceImages: research.images,
+            savedAt: Date.now(),
+            imageStyle: style,
+          };
+          setHistory((prev) => upsertHistory(prev, cacheEntry));
+
           try {
             const refUrls = (research.images ?? []).map((img) => img.image_url).filter(Boolean);
             const imageBase64 = await generateEraImage(
