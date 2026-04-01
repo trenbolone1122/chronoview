@@ -1,0 +1,11 @@
+services:
+  chronoview:
+    build: .
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    restart: unless-stopped
