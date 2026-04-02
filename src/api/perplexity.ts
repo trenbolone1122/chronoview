@@ -158,6 +158,8 @@ export async function researchPlace(
         type: "json_schema",
         json_schema: { schema: buildSchema(imageStyle) },
       },
+      return_images: true,
+      image_format_filter: ["jpeg", "png", "webp"],
       temperature: 0.3,
       max_tokens: 8192,
     }),
@@ -181,6 +183,16 @@ export async function researchPlace(
     throw new Error("Failed to parse Perplexity JSON response");
   }
 
+  const sonarImages: PerplexityImage[] = (data.images ?? []).map(
+    (img: Record<string, unknown>) => ({
+      image_url: img.image_url ?? "",
+      origin_url: img.origin_url ?? "",
+      title: img.title ?? "",
+      width: img.width ?? 0,
+      height: img.height ?? 0,
+    })
+  );
+
   const stripCitations = (s: string) => s.replace(/\[\d+\]/g, "").trim();
 
   return {
@@ -194,7 +206,7 @@ export async function researchPlace(
       cameraAngle: e.cameraAngle,
     })),
     citations: data.citations ?? [],
-    images: [],
+    images: sonarImages,
   };
 }
 
@@ -254,6 +266,8 @@ export async function researchCustomYear(
         type: "json_schema",
         json_schema: { schema: buildCustomYearSchema(imageStyle) },
       },
+      return_images: true,
+      image_format_filter: ["jpeg", "png", "webp"],
       temperature: 0.3,
       max_tokens: 8192,
     }),
@@ -279,6 +293,16 @@ export async function researchCustomYear(
     throw new Error("Failed to parse Perplexity JSON response");
   }
 
+  const sonarImages: PerplexityImage[] = (data.images ?? []).map(
+    (img: Record<string, unknown>) => ({
+      image_url: img.image_url ?? "",
+      origin_url: img.origin_url ?? "",
+      title: img.title ?? "",
+      width: img.width ?? 0,
+      height: img.height ?? 0,
+    })
+  );
+
   const stripCitations = (s: string) => s.replace(/\[\d+\]/g, "").trim();
 
   return {
@@ -292,6 +316,6 @@ export async function researchCustomYear(
       cameraAngle: parsed.era.cameraAngle,
     },
     citations: data.citations ?? [],
-    images: [],
+    images: sonarImages,
   };
 }

@@ -27,14 +27,14 @@ const SYSTEM_PROMPTS: Record<ImageStyle, string> = {
 
 HISTORICAL ACCURACY IS PARAMOUNT. You MUST rigorously depict the city EXACTLY as it would have appeared in the specified year. Research the architecture, infrastructure, vegetation, and development level for that exact time period. Do NOT show modern buildings, roads, vehicles, or technology in historical eras. A city in 1200 AD must look like 1200 AD — no anachronisms whatsoever. If the city did not exist yet, show the undeveloped natural landscape.
 
-EVERY image MUST look like a real photograph taken from an elevated vantage point — a drone, hilltop, rooftop, or aircraft. Show the full cityscape, skyline, landmark buildings, and surrounding geography (rivers, mountains, coastline). Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce street-level, eye-level, or close-up shots. The output must be indistinguishable from a real aerial photograph — proper lighting, atmospheric haze, natural textures, wide depth of field. If the scene is historical, imagine a time traveler flew a drone over the city and photographed it from above. NEVER reproduce watermarks, logos, text overlays, or stock photo marks. The output must be a clean, original photograph with NO text or watermarks anywhere in the image. OUTPUT ONLY A CLEAN PHOTOREALISTIC IMAGE.`,
+EVERY image MUST look like a real photograph taken from an elevated vantage point — a drone, hilltop, rooftop, or aircraft. Show the full cityscape, skyline, landmark buildings, and surrounding geography (rivers, mountains, coastline). Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce street-level, eye-level, or close-up shots. The output must be indistinguishable from a real aerial photograph — proper lighting, atmospheric haze, natural textures, wide depth of field. If the scene is historical, imagine a time traveler flew a drone over the city and photographed it from above. If reference images are provided, use them ONLY for geographic and architectural context — do NOT mimic their art style. NEVER reproduce watermarks, logos, text overlays, or stock photo marks. The output must be a clean, original photograph with NO text or watermarks anywhere in the image. OUTPUT ONLY A CLEAN PHOTOREALISTIC IMAGE.`,
   street: `You are a photorealistic image generator specializing in STREET-LEVEL photographs of cities showing daily life.
 
 HISTORICAL ACCURACY IS PARAMOUNT. You MUST rigorously depict the city EXACTLY as it would have appeared in the specified year. Every detail matters: clothing must be period-accurate to the exact era and culture (fabrics, cuts, headwear, footwear), architecture must reflect the actual construction techniques and materials of that time, street surfaces must be historically correct (dirt, cobblestone, flagstone — NOT asphalt in ancient eras), vehicles/carts/animals must match the era, shop signs and goods must be period-appropriate. Do NOT show ANY anachronistic elements — no modern clothing, no modern materials, no modern infrastructure in historical scenes. A street in 1400 AD must look unmistakably like 1400 AD.
 
 PEOPLE COMPOSITION: Show a MODERATE number of people (5-12, NOT a crowd of 30+). People should be going about their daily activities — walking, carrying goods, conversing. CRITICALLY: most people should be walking AWAY from the camera or at oblique angles, with their BACKS toward the viewer. Do NOT pose people facing the camera. At most 1-2 people may be partially turned toward the camera. This creates a candid, documentary feel — as if the photographer is observing unnoticed.
 
-EVERY image MUST look like a real photograph taken at eye-level by a person standing in the street. Use shallow depth of field for cinematic bokeh — sharp foreground subjects, dreamy background blur. Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce aerial or bird's-eye shots. The output must be indistinguishable from a real street photograph — proper lighting, film grain, natural textures, bokeh. If the scene is historical, imagine a time traveler took a DSLR camera back in time and photographed the street. NEVER reproduce watermarks, logos, text overlays, or stock photo marks. The output must be a clean, original photograph with NO text or watermarks anywhere in the image. OUTPUT ONLY A CLEAN PHOTOREALISTIC IMAGE.`,
+EVERY image MUST look like a real photograph taken at eye-level by a person standing in the street. Use shallow depth of field for cinematic bokeh — sharp foreground subjects, dreamy background blur. Absolutely NO illustrations, paintings, drawings, anime, manga, ukiyo-e, woodblock prints, watercolors, sketches, digital art, CGI renders, or any non-photographic style. NEVER produce aerial or bird's-eye shots. The output must be indistinguishable from a real street photograph — proper lighting, film grain, natural textures, bokeh. If the scene is historical, imagine a time traveler took a DSLR camera back in time and photographed the street. If reference images are provided, use them ONLY for geographic and architectural context — do NOT mimic their art style. NEVER reproduce watermarks, logos, text overlays, or stock photo marks. The output must be a clean, original photograph with NO text or watermarks anywhere in the image. OUTPUT ONLY A CLEAN PHOTOREALISTIC IMAGE.`,
 };
 
 const PREFIXES: Record<ImageStyle, string> = {
@@ -46,9 +46,28 @@ const PREFIXES: Record<ImageStyle, string> = {
 
 /* ── Core fetch + parse logic ──────────────────────────────────────── */
 
+/**
+ * Build multimodal user content: text prompt + optional base64 reference images.
+ */
+function buildUserContent(
+  prompt: string,
+  referenceBase64: string[]
+): string | Array<{ type: string; text?: string; image_url?: { url: string } }> {
+  if (referenceBase64.length === 0) return prompt;
+
+  const parts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
+    { type: "text", text: prompt },
+  ];
+  for (const b64 of referenceBase64) {
+    parts.push({ type: "image_url", image_url: { url: b64 } });
+  }
+  return parts;
+}
+
 async function callOpenRouter(
   prompt: string,
   systemPrompt: string,
+  referenceBase64: string[],
   apiKey: string,
   model: string,
   signal?: AbortSignal
@@ -59,7 +78,7 @@ async function callOpenRouter(
       { role: "system" as const, content: systemPrompt },
       {
         role: "user" as const,
-        content: prompt,
+        content: buildUserContent(prompt, referenceBase64),
       },
     ],
     modalities: ["image", "text"],
@@ -122,6 +141,8 @@ class OpenRouterError extends Error {
  * Generate an image for a historical era using Gemini via OpenRouter.
  * Returns a base64 data URL (data:image/png;base64,...).
  *
+ * `referenceBase64` — pre-downloaded base64 data URLs of Sonar reference images.
+ * Only provided for eras >= 1880 (photography era). Empty array for older eras.
  * Retries once on failure.
  */
 export async function generateEraImage(
@@ -131,7 +152,8 @@ export async function generateEraImage(
   model?: string,
   imageStyle: ImageStyle = "aerial",
   eraYear?: number,
-  placeName?: string
+  placeName?: string,
+  referenceBase64: string[] = []
 ): Promise<string> {
   const resolvedModel = model || DEFAULT_MODEL;
   const systemPrompt = SYSTEM_PROMPTS[imageStyle];
@@ -146,18 +168,19 @@ export async function generateEraImage(
       : "";
   const fullPrompt = PREFIXES[imageStyle] + timeAnchor + prompt;
 
+  const refCount = referenceBase64.length;
   console.log(
-    `[Chronoview] 🎨 Generating image | style=${imageStyle} | model=${resolvedModel}`
+    `[Chronoview] 🎨 Generating image | style=${imageStyle} | model=${resolvedModel} | refs=${refCount}`
   );
   console.log(`[Chronoview] 📝 Prompt: ${prompt.slice(0, 120)}...`);
 
   // Attempt 1
   try {
     const result = await callOpenRouter(
-      fullPrompt, systemPrompt,
+      fullPrompt, systemPrompt, referenceBase64,
       apiKey, resolvedModel, signal
     );
-    console.log(`[Chronoview] ✅ Image generated successfully`);
+    console.log(`[Chronoview] ✅ Image generated successfully (refs=${refCount})`);
     return result;
   } catch (err) {
     if (signal?.aborted) throw err;
@@ -167,14 +190,14 @@ export async function generateEraImage(
       err instanceof Error ? err.message : err
     );
 
-    // Attempt 2: retry once
-    console.log(`[Chronoview] 🔄 Retrying...`);
+    // Attempt 2: retry without refs (in case they caused issues)
+    console.log(`[Chronoview] 🔄 Retrying without reference images...`);
     try {
       const result = await callOpenRouter(
-        fullPrompt, systemPrompt,
+        fullPrompt, systemPrompt, [],
         apiKey, resolvedModel, signal
       );
-      console.log(`[Chronoview] ✅ Image generated successfully (retry)`);
+      console.log(`[Chronoview] ✅ Image generated successfully (retry, no refs)`);
       return result;
     } catch (retryErr) {
       if (signal?.aborted) throw retryErr;

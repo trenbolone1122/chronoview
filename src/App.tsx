@@ -8,6 +8,7 @@ import { researchPlace, researchCustomYear } from "@/api/perplexity";
 import { generateEraImage } from "@/api/gemini";
 import { findCachedPlace, loadHistory, upsertHistory, saveHistory } from "@/lib/cache";
 import { saveImage, getImages, clearImages } from "@/lib/imageStore";
+import { preDownloadReferenceImages, REF_IMAGE_YEAR_CUTOFF } from "@/lib/imageDownload";
 import type { Era, CachedPlace, AppStatus, PerplexityResponse, ViewMode, ImageStyle } from "@/types";
 
 export default function App() {
@@ -78,6 +79,16 @@ export default function App() {
       style: ImageStyle = "aerial",
       resolvedPlaceName?: string
     ) => {
+      // Pre-download Sonar reference images once (only used for eras >= 1880)
+      const sonarUrls = (researchData.images ?? []).map((img) => img.image_url).filter(Boolean);
+      const needsRefs = eraList.some((e) => e.year >= REF_IMAGE_YEAR_CUTOFF);
+      let refBase64: string[] = [];
+      if (needsRefs && sonarUrls.length > 0 && !signal.aborted) {
+        console.log(`[Chronoview] 📥 Pre-downloading ${sonarUrls.length} reference images...`);
+        refBase64 = await preDownloadReferenceImages(sonarUrls, signal);
+        console.log(`[Chronoview] 📥 Downloaded ${refBase64.length} reference images as base64`);
+      }
+
       for (let i = 0; i < eraList.length; i++) {
         // Check abort at EVERY possible point
         if (signal.aborted) return;
@@ -101,6 +112,8 @@ export default function App() {
 
         try {
           const pEra = researchData.eras[i];
+          // Only send reference images for photography-era (>= 1880)
+          const eraRefs = pEra.year >= REF_IMAGE_YEAR_CUTOFF ? refBase64 : [];
           const imageBase64 = await generateEraImage(
             pEra.imagePrompt,
             openrouterKey,
@@ -108,7 +121,8 @@ export default function App() {
             imageModel,
             style,
             pEra.year,
-            resolvedPlaceName ?? researchData.placeName
+            resolvedPlaceName ?? researchData.placeName,
+            eraRefs
           );
 
           if (signal.aborted) return;
@@ -318,7 +332,7 @@ export default function App() {
             country: research.country,
             eras: eraList,
             citations: research.citations,
-            referenceImages: [],
+            referenceImages: research.images,
             savedAt: Date.now(),
             imageStyle: style,
             viewMode: "eras",
@@ -368,7 +382,7 @@ export default function App() {
             country: research.country,
             eras: [singleEra],
             citations: research.citations,
-            referenceImages: [],
+            referenceImages: research.images,
             savedAt: Date.now(),
             imageStyle: style,
             viewMode: "custom-year",
@@ -377,6 +391,16 @@ export default function App() {
           setHistory((prev) => upsertHistory(prev, cacheEntry));
 
           try {
+            // Pre-download refs for photography-era custom years
+            let customRefs: string[] = [];
+            if (year >= REF_IMAGE_YEAR_CUTOFF) {
+              const urls = (research.images ?? []).map((img) => img.image_url).filter(Boolean);
+              if (urls.length > 0 && !controller.signal.aborted) {
+                customRefs = await preDownloadReferenceImages(urls, controller.signal);
+              }
+            }
+            if (controller.signal.aborted) return;
+
             const imageBase64 = await generateEraImage(
               research.era.imagePrompt,
               openrouterKey,
@@ -384,7 +408,8 @@ export default function App() {
               imageModel,
               style,
               research.era.year,
-              research.placeName
+              research.placeName,
+              customRefs
             );
 
             if (controller.signal.aborted) return;
