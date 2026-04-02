@@ -101,10 +101,8 @@ export default function App() {
 
         try {
           const pEra = researchData.eras[i];
-          const refUrls = (researchData.images ?? []).map((img) => img.image_url).filter(Boolean);
           const imageBase64 = await generateEraImage(
             pEra.imagePrompt,
-            refUrls,
             openrouterKey,
             signal,
             imageModel,
@@ -320,7 +318,7 @@ export default function App() {
             country: research.country,
             eras: eraList,
             citations: research.citations,
-            referenceImages: research.images,
+            referenceImages: [],
             savedAt: Date.now(),
             imageStyle: style,
             viewMode: "eras",
@@ -370,7 +368,7 @@ export default function App() {
             country: research.country,
             eras: [singleEra],
             citations: research.citations,
-            referenceImages: research.images,
+            referenceImages: [],
             savedAt: Date.now(),
             imageStyle: style,
             viewMode: "custom-year",
@@ -379,10 +377,8 @@ export default function App() {
           setHistory((prev) => upsertHistory(prev, cacheEntry));
 
           try {
-            const refUrls = (research.images ?? []).map((img) => img.image_url).filter(Boolean);
             const imageBase64 = await generateEraImage(
               research.era.imagePrompt,
-              refUrls,
               openrouterKey,
               controller.signal,
               imageModel,

@@ -42,6 +42,21 @@ export function Timeline({ eras, activeIndex, onSelect }: TimelineProps) {
           />
         )}
 
+        {/* Traveling glow — animated pulse that rides the progress line tip */}
+        {cols > 1 && activeIndex > 0 && (
+          <div
+            className="pointer-events-none absolute transition-all duration-700 ease-out"
+            style={{
+              top: ACTIVE_DOT_SIZE / 2,
+              left: `${dotPct(activeIndex)}%`,
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <div className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_2px_rgba(34,211,238,0.5)]" />
+            <div className="absolute inset-0 animate-ping rounded-full bg-cyan-400/40" />
+          </div>
+        )}
+
         {eras.map((era, i) => {
           const isActive = i === activeIndex;
           const isFilled = era.imageStatus === "ready";

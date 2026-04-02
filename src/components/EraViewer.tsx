@@ -11,32 +11,39 @@ interface EraViewerProps {
 }
 
 export function EraViewer({ era, placeName, hideDescription }: EraViewerProps) {
-  // ── Crossfade state ─────────────────────────────────────────────────
-  const [displayedImage, setDisplayedImage] = useState<string | null>(null);
-  const [fadingIn, setFadingIn] = useState(false);
+  // ── Dual-layer crossfade ─────────────────────────────────────────────
+  // Two image layers alternate: one fades in while the other holds the old image.
+  const [layerA, setLayerA] = useState<string | null>(null);
+  const [layerB, setLayerB] = useState<string | null>(null);
+  const [activeLayer, setActiveLayer] = useState<"A" | "B">("A");
   const prevEraId = useRef<string | null>(null);
 
   useEffect(() => {
     if (!era) {
-      setDisplayedImage(null);
+      setLayerA(null);
+      setLayerB(null);
       prevEraId.current = null;
       return;
     }
 
     if (era.imageStatus === "ready" && era.imageBase64) {
       if (prevEraId.current !== era.id) {
-        // New era image → trigger crossfade
-        setFadingIn(false);
-        // Small delay so the browser registers opacity 0 first
-        requestAnimationFrame(() => {
-          setDisplayedImage(era.imageBase64);
-          requestAnimationFrame(() => setFadingIn(true));
-        });
+        // New era → load into the inactive layer, then flip
+        if (activeLayer === "A") {
+          setLayerB(era.imageBase64);
+          setActiveLayer("B");
+        } else {
+          setLayerA(era.imageBase64);
+          setActiveLayer("A");
+        }
         prevEraId.current = era.id;
       } else {
-        // Same era, just ensure it's shown
-        setDisplayedImage(era.imageBase64);
-        setFadingIn(true);
+        // Same era, just ensure it's shown on the active layer
+        if (activeLayer === "A") {
+          setLayerA(era.imageBase64);
+        } else {
+          setLayerB(era.imageBase64);
+        }
       }
     }
   }, [era?.id, era?.imageStatus, era?.imageBase64]);
@@ -53,13 +60,23 @@ export function EraViewer({ era, placeName, hideDescription }: EraViewerProps) {
     <div className="flex h-full flex-col">
       {/* Image area — fills available space */}
       <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-white/10 bg-black/40">
-        {/* Crossfade image layer */}
-        {displayedImage && (
+        {/* Layer A */}
+        {layerA && (
           <img
-            src={displayedImage}
+            src={layerA}
             alt={`${placeName} — ${era.label}, ${era.year}`}
             className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out"
-            style={{ opacity: fadingIn ? 1 : 0 }}
+            style={{ opacity: activeLayer === "A" ? 1 : 0 }}
+          />
+        )}
+
+        {/* Layer B */}
+        {layerB && (
+          <img
+            src={layerB}
+            alt={`${placeName} — ${era.label}, ${era.year}`}
+            className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-in-out"
+            style={{ opacity: activeLayer === "B" ? 1 : 0 }}
           />
         )}
 
@@ -86,7 +103,7 @@ export function EraViewer({ era, placeName, hideDescription }: EraViewerProps) {
           </div>
         )}
 
-        {era.imageStatus === "pending" && !displayedImage && (
+        {era.imageStatus === "pending" && !layerA && !layerB && (
           <Skeleton className="h-full w-full bg-white/5" />
         )}
       </div>
